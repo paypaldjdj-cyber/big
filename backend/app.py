@@ -23,7 +23,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__, static_folder="../frontend/dist")
+# Set static folder to the absolute path of frontend/dist
+static_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
+app = Flask(__name__, static_folder=static_path)
 
 # Debug Fallbacks to prevent crash on Railway if ENV is missing
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "debug-secret-key-123")
@@ -80,10 +82,10 @@ def uploaded_file(filename):
     if not os.path.exists(UPLOAD_FOLDER): os.makedirs(UPLOAD_FOLDER)
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-# --- DEBUG ROOT ROUTE REMOVED TO SERVE FRONTEND ---
-# @app.route('/')
-# def index():
-#     return "<h1>SmileCare Backend is UP and Running!</h1><p>API is available at /api/health</p>", 200
+# --- DEBUG ROOT ROUTE (TEMPORARY TO VERIFY SYNC) ---
+@app.route('/')
+def index():
+    return f"<h1>SmileCare SYNCED at {os.getenv('RAILWAY_STATIC_URL', 'Cloud')}</h1><p>If you see this, the code is updated. Testing path: {app.static_folder}</p>", 200
 
 # --- CATCH-ALL FOR FRONTEND ---
 @app.route('/<path:path>')
