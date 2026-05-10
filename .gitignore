@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Build artifacts
+dist/
+dist_electron/
+backend_dist/
+clinic_server.spec
+build/
+
+# Databases (We don't upload the client data!)
+databases/
+backend/databases/
+
+# OS files
+.DS_Store
+Thumbs.db
