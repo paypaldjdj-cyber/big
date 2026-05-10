@@ -38,6 +38,8 @@ function createWindow() {
 app.on('ready', () => {
   const isDev = !app.isPackaged;
   
+  // Local backend is disabled because we are now Cloud-Based
+  /*
   if (isDev) {
     flaskProcess = spawn('python', ['backend/app.py'], {
       cwd: __dirname,
@@ -50,10 +52,12 @@ app.on('ready', () => {
       stdio: 'inherit'
     });
   }
+  */
 
   createWindow();
   Menu.setApplicationMenu(null);
 });
+
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {

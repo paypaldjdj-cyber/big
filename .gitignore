@@ -9,9 +9,9 @@ venv/
 .env
 
 # Build artifacts
-dist/
 dist_electron/
 backend_dist/
+
 clinic_server.spec
 build/
 

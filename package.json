@@ -6,8 +6,12 @@
     "start": "electron .",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "python build_backend.py",
-    "kill": "taskkill /F /IM \"SmileCare Clinic 1.0.0.exe\" /T || echo Process not running",
-    "dist": "npm run kill && npm run build:frontend && npm run build:backend && electron-builder"
+    "kill": "taskkill /F /IM \"SmileCare*\" /T || echo Process not running",
+
+    "dist": "npm run kill && (rmdir /s /q dist_electron || echo clean) && npm run build:frontend && electron-builder"
+
+
+
   },
 
   "build": {
