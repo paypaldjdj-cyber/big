@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+databases
+backups
+static/uploads
+.env
+.venv
+venv
+env
+*.db
