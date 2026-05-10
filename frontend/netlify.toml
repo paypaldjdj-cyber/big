@@ -1,0 +1,10 @@
+[[redirects]]
+  from = "/api/*"
+  to = "https://big-production-b648.up.railway.app/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,28 @@
+{
+  "name": "dental-clinic",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "dexie": "^4.4.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.23.1",
+    "recharts": "^3.8.1",
+    "three": "^0.184.0",
+    "vite": "^5.4.21"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite-plugin-pwa": "^0.20.5"
+  },
+  "optionalDependencies": {
+    "@esbuild/linux-x64": "*",
+    "@rollup/rollup-linux-x64-gnu": "*"
+  }
+}
