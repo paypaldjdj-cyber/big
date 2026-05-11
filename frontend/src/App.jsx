@@ -113,6 +113,12 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
+    // 🎨 Theme Persistence Logic
+    const savedLightMode = localStorage.getItem("light-mode") === "true";
+    if (savedLightMode) {
+      document.body.classList.add("light-mode");
+    }
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener("online", handleOnline);
