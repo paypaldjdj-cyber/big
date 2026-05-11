@@ -5,8 +5,9 @@ import os
 
 import os
 
-# Persistent storage for limiter (Use Redis if available in production)
-LIMITER_DB_URI = os.getenv("REDIS_URL", "memory://")
+# Persistent storage for limiter (Use Redis if available, else SQLite for persistence, memory as last resort)
+REDIS = os.getenv("REDIS_URL")
+LIMITER_DB_URI = REDIS if REDIS else "sqlite:///databases/limiter.db"
 
 limiter = Limiter(
     key_func=get_remote_address,

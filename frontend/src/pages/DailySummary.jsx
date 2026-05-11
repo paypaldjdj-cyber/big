@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLanguage } from "../LanguageContext";
 import { useAuth } from "../AuthContext";
 import { useNavigate } from "react-router-dom";
-import { getInvoices, getExpenses, getAppointments, getPatients, getAllTreatments, getAuditLogs } from "../api";
+import { getInvoices, getExpenses, getAppointments, getPatients, getAllTreatments, getAuditLogs, getDailySummaryPDFUrl } from "../api";
 
 const fmt = (n) => (n || 0).toLocaleString();
 
@@ -101,7 +101,18 @@ export default function DailySummary() {
             <h2 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>📊 {t("ملخص الجرد اليومي الشامل")}</h2>
             <p style={{ color: "var(--text-muted)", marginTop: 4 }}>{t("بيانات العيادة ليوم")} {today}</p>
           </div>
-          <button onClick={() => window.print()} className="btn-secondary">🖨️ {t("طباعة التقرير الختامي")}</button>
+          <button onClick={async () => {
+            const url = getDailySummaryPDFUrl();
+            try {
+              const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+              const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
+              const blob = await res.blob();
+              window.open(URL.createObjectURL(blob), "_blank");
+            } catch (e) {
+              console.error("PDF error:", e);
+              alert("فشل في استرداد ملخص اليوم");
+            }
+          }} className="btn-secondary">🖨️ {t("طباعة التقرير الختامي")}</button>
         </div>
 
         {/* Main Stats Grid */}

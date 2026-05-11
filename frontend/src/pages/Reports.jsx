@@ -9,7 +9,7 @@ const SummaryCard = ({ label, val, color }) => {
   return (
     <div className="glass-panel" style={{ padding: 16, textAlign: "center", borderTop: `4px solid ${color}`, display: "flex", flexDirection: "column", justifyContent: "center" }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 700 }}>{val?.toLocaleString()} {t("د")}</div>
+      <div style={{ fontSize: 18, fontWeight: 700 }}>{(val || 0).toLocaleString()} {t("د")}</div>
     </div>
   );
 };
@@ -17,7 +17,7 @@ const SummaryCard = ({ label, val, color }) => {
 const ReportRow = ({ label, val, unit, color, bold }) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
     <span style={{ fontSize: 14, color: "var(--text-muted)" }}>{label}</span>
-    <span style={{ fontSize: bold ? 20 : 16, fontWeight: 700, color: color || "white" }}>{val?.toLocaleString()} {unit}</span>
+    <span style={{ fontSize: bold ? 20 : 16, fontWeight: 700, color: color || "white" }}>{(val || 0).toLocaleString()} {unit}</span>
   </div>
 );
 
@@ -90,7 +90,7 @@ export default function Reports() {
           <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>⚠️ {t("مديونية المرضى")}</h3>
           <div style={{ textAlign: "center", padding: "20px 0" }}>
              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{t("إجمالي الديون المتبقية عند المرضى")}</div>
-             <div style={{ fontSize: 32, fontWeight: 800, color: "#ef4444" }}>{fin.total_debt?.toLocaleString()} {t("د")}</div>
+             <div style={{ fontSize: 32, fontWeight: 800, color: "#ef4444" }}>{(fin.total_debt || 0).toLocaleString()} {t("د")}</div>
              <button className="btn-ghost" style={{ marginTop: 20, width: "100%" }} onClick={() => window.location.href = "/debts"}>{t("عرض تفاصيل المدينين")}</button>
           </div>
         </div>

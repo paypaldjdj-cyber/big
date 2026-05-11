@@ -59,7 +59,15 @@ async function req(path, method = "GET", body = null, isMultipart = false) {
     const resText = await res.text();
     if (!res.ok) throw new Error(resText);
     
-    const data = JSON.parse(resText);
+    let data;
+    try {
+      data = JSON.parse(resText);
+    } catch (e) {
+      console.error("API Error: Server returned non-JSON response:", resText);
+      // Return a safe error object instead of crashing
+      data = { error: "Server error: Invalid JSON response", raw: resText };
+    }
+    
     if (isRead) localDB.save(path, data);
     return data;
   } catch (err) {
@@ -180,6 +188,9 @@ export const updateDrug = (id, data) => req(`/drugs/${id}`, "PUT", data);
 export const toggleFavoriteDrug = (id) => req(`/drugs/${id}/toggle-favorite`, "POST");
 export const createSmartPrescription = (data) => req("/prescriptions/", "POST", data);
 export const getPrescriptionPDFUrl = (id) => `${BASE}/prescriptions/${id}/pdf`;
+export const getInvoicePDFUrl = (id) => `${BASE}/invoices/${id}/pdf`;
+export const getPatientReportPDFUrl = (id) => `${BASE}/patients/${id}/report-pdf`;
+export const getDailySummaryPDFUrl = () => `${BASE}/stats/daily-summary/pdf`;
 
 // Internal Messages
 export const getMessages = () => req("/messages/");

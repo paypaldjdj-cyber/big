@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useLanguage } from "../LanguageContext";
-import { updatePatient } from "../api";
+import { updatePatient, getPatientReportPDFUrl } from "../api";
 
 export default function CasePresentation({ patientId, initialData = {} }) {
   const { t } = useLanguage();
@@ -48,7 +48,18 @@ export default function CasePresentation({ patientId, initialData = {} }) {
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
         <h3 style={{ fontSize: 18, fontWeight: 700 }}>{t("عرض الحالة")}</h3>
         <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={() => window.print()} className="btn-ghost" style={{ fontSize: 12 }}>🖨 {t("طباعة")}</button>
+          <button onClick={async () => {
+            const url = getPatientReportPDFUrl(patientId);
+            try {
+              const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+              const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
+              const blob = await res.blob();
+              window.open(URL.createObjectURL(blob), "_blank");
+            } catch (e) {
+              console.error("PDF error:", e);
+              alert("فشل في استرداد تقرير الحالة");
+            }
+          }} className="btn-ghost" style={{ fontSize: 12 }}>🖨 {t("طباعة")}</button>
           <button onClick={save} className="btn-primary" style={{ fontSize: 12 }}>{t("حفظ البيانات")}</button>
         </div>
       </div>

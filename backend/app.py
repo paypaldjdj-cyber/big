@@ -38,8 +38,11 @@ except Exception as e:
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 ADMIN_PASS = os.getenv("ADMIN_PASSWORD")
 
-if not app.config["SECRET_KEY"] or not ADMIN_PASS:
-    print("CRITICAL WARNING: SECRET_KEY or ADMIN_PASSWORD is NOT set in environment variables!")
+if not app.config["SECRET_KEY"]:
+    raise RuntimeError("FATAL SECURITY ERROR: SECRET_KEY is not set! Server cannot start without it.")
+
+if not ADMIN_PASS:
+    raise RuntimeError("FATAL SECURITY ERROR: ADMIN_PASSWORD is not set! System Admin dashboard must be protected.")
 
 # Initialize Extensions
 limiter.init_app(app)
@@ -53,9 +56,11 @@ scheduler.add_job(func=run_daily_company_backup, trigger="cron", hour=2, minute=
 scheduler.add_job(func=cleanup_old_tokens, trigger="cron", hour=3, minute=0)
 scheduler.start()
 
-# Secure CORS: Allow only specified origins
-cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
-CORS(app, resources={r"/*": {"origins": cors_origins}}, supports_credentials=True)
+# 🔐 Strict CORS Configuration
+CORS_ALLOWED = os.getenv("CORS_ORIGINS", "https://smilecarepro.netlify.app").split(",")
+
+# Allow credentials for secure cookie/auth handling
+CORS(app, resources={r"/*": {"origins": CORS_ALLOWED}}, supports_credentials=True)
 
 if os.getenv("CORS_ORIGINS") == "*":
     print("SECURITY WARNING: CORS is open to all origins (*). Set CORS_ORIGINS in Railway!")

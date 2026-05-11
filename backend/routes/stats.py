@@ -148,3 +148,84 @@ def get_invoice_summary():
         "today_total": today_total,
         "today_collected": today_collected
     })
+@stats_bp.route("/daily-summary/pdf", methods=["GET"])
+@db_required
+def download_daily_summary_pdf():
+    from flask import send_file
+    import io
+    from pdf_utils import get_pdf_styles, add_header_footer, force_english
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from datetime import datetime
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Financial data
+    rev_rows = g.db.execute("SELECT i.*, p.first_name || ' ' || p.last_name as p_name FROM invoices i JOIN patients p ON i.patient_id = p.id WHERE i.date = ?", (today,)).fetchall()
+    exp_rows = g.db.execute("SELECT * FROM expenses WHERE date = ?", (today,)).fetchall()
+    
+    total_rev = sum(r['paid_amount'] for r in rev_rows)
+    total_exp = sum(r['amount'] for r in exp_rows)
+
+    settings_rows = g.db.execute("SELECT key, value FROM settings").fetchall()
+    clinic = {row["key"]: row["value"] for row in settings_rows}
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=60*mm, bottomMargin=45*mm)
+    styles = get_pdf_styles()
+    story = []
+
+    story.append(Paragraph(f"Daily Financial Summary - {today}", styles["title"]))
+    story.append(Spacer(1, 10*mm))
+
+    # Revenue Table
+    story.append(Paragraph("Revenue (Payments Received)", styles["label"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#10b981")))
+    story.append(Spacer(1, 4*mm))
+    
+    if rev_rows:
+        rev_data = [["Patient", "Method", "Amount"]]
+        for r in rev_rows:
+            rev_data.append([force_english(r['p_name']), r['payment_method'], f"{r['paid_amount']:,.0f}"])
+        
+        rt = Table(rev_data, colWidths=[100*mm, 35*mm, 35*mm])
+        rt.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.whitesmoke), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.lightgrey), ('PADDING', (0,0), (-1,-1), 6)]))
+        story.append(rt)
+    else:
+        story.append(Paragraph("No revenue recorded today.", styles["normal"]))
+
+    story.append(Spacer(1, 15*mm))
+
+    # Expenses Table
+    story.append(Paragraph("Expenses (Payments Made)", styles["label"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#ef4444")))
+    story.append(Spacer(1, 4*mm))
+    
+    if exp_rows:
+        exp_data = [["Category", "Description", "Amount"]]
+        for e in exp_rows:
+            exp_data.append([force_english(e['category']), force_english(e['description']), f"{e['amount']:,.0f}"])
+        
+        et = Table(exp_data, colWidths=[40*mm, 95*mm, 35*mm])
+        et.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.whitesmoke), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.lightgrey), ('PADDING', (0,0), (-1,-1), 6)]))
+        story.append(et)
+    else:
+        story.append(Paragraph("No expenses recorded today.", styles["normal"]))
+
+    story.append(Spacer(1, 20*mm))
+    
+    # Final Totals
+    total_data = [
+        ["Total Revenue:", f"{total_rev:,.0f} IQD"],
+        ["Total Expenses:", f"{total_exp:,.0f} IQD"],
+        ["Net Cash Flow:", f"{(total_rev - total_exp):,.0f} IQD"]
+    ]
+    for lbl, val in total_data:
+        row = [Paragraph(f"<b>{lbl}</b>", styles["normal"]), Paragraph(f"<b>{val}</b>", styles["value"])]
+        story.append(Table([row], colWidths=[130*mm, 40*mm]))
+
+    doc.build(story, onFirstPage=lambda c, d: add_header_footer(c, d, clinic), onLaterPages=lambda c, d: add_header_footer(c, d, clinic))
+    buf.seek(0)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name=f"summary_{today}.pdf")

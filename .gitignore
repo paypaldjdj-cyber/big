@@ -30,6 +30,8 @@ frontend/.env
 .DS_Store
 Thumbs.db
 # Debug and Scratch files
+frontend/scratch/
+tools/
 backend/scratch/
 node_modules/
 dist_electron/

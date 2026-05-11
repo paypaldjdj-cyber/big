@@ -17,7 +17,14 @@ export default function PrescriptionModal({ patient, onClose, onRefresh, existin
     date: existingData?.date || new Date().toLocaleDateString('en-GB')
   });
   const [diagnosis, setDiagnosis] = useState(existingData?.diagnosis || initialDiagnosis || "");
-  const [drugs, setDrugs] = useState(existingData?.drugs_json ? JSON.parse(existingData.drugs_json) : (initialMeds || []));
+  const [drugs, setDrugs] = useState(() => {
+    try {
+      return existingData?.drugs_json ? JSON.parse(existingData.drugs_json) : (initialMeds || []);
+    } catch (e) {
+      console.error("Prescription parsing error:", e);
+      return initialMeds || [];
+    }
+  });
   const [loading, setLoading] = useState(false);
 
   const isReadOnly = !!existingData;
@@ -62,23 +69,32 @@ export default function PrescriptionModal({ patient, onClose, onRefresh, existin
         return;
       }
 
-      const res = await createSmartPrescription({ 
+      const payload = { 
         patient_id: patient.id, 
         diagnosis, 
         drugs,
         custom_info: editablePatient
-      });
-      if (res.id) {
-        const url = getPrescriptionPDFUrl(res.id);
-        const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
-        const pdfRes = await fetch(url, {
+      };
+
+      const saveRes = await createSmartPrescription(payload);
+
+      if (saveRes.id) {
+        const url = getPrescriptionPDFUrl(saveRes.id);
+        try {
+          const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+          const pdfRes = await fetch(url, {
             headers: { "Authorization": user?.token ? `Bearer ${user.token}` : "" }
-        });
-        const blob = await pdfRes.blob();
-        const objUrl = URL.createObjectURL(blob);
-        window.open(objUrl, "_blank");
-        onRefresh();
-        onClose();
+          });
+          const blob = await pdfRes.blob();
+          window.open(URL.createObjectURL(blob), "_blank");
+          onRefresh();
+          onClose();
+        } catch (e) {
+          console.error("PDF generation error:", e);
+          alert("تم الحفظ بنجاح، ولكن فشل فتح ملف PDF للطباعة.");
+          onRefresh();
+          onClose();
+        }
       }
     } catch(e) {
       alert("Error: " + e.message);
@@ -114,10 +130,15 @@ export default function PrescriptionModal({ patient, onClose, onRefresh, existin
         {isReadOnly && (
           <button className="btn-primary" onClick={async () => {
               const url = getPrescriptionPDFUrl(existingData.id);
-              const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
-              const pdfRes = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
-              const blob = await pdfRes.blob();
-              window.open(URL.createObjectURL(blob), "_blank");
+            try {
+        const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+        const pdfRes = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
+        const blob = await pdfRes.blob();
+        window.open(URL.createObjectURL(blob), "_blank");
+      } catch (e) {
+        console.error("Print parsing error:", e);
+        alert("فشل في استرداد بيانات الطباعة");
+      }
           }}>🖨 Print PDF</button>
         )}
         {!isWizard && <button className="btn-ghost" onClick={onClose}>Close</button>}

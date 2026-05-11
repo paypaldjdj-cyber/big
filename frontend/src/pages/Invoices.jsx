@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../LanguageContext";
 import { useAuth } from "../AuthContext";
-import { getInvoices, getInvoiceSummary, addInvoice, payInvoice, getPatients, BASE } from "../api";
+import { getInvoices, getInvoiceSummary, addInvoice, payInvoice, getPatients, getInvoicePDFUrl, getDailySummaryPDFUrl, BASE } from "../api";
 import { useSettings } from "../SettingsContext";
 
 const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -73,7 +73,7 @@ export default function Invoices() {
     const selectedP = patients.find(p => p.id == form.patient_id);
     const patientTotal = selectedP?.total_price || requiredAmt;
 
-    await addInvoice({
+    const res = await addInvoice({
       patient_id: parseInt(form.patient_id),
       total_amount: patientTotal,
       paid_amount: paidAmt,
@@ -82,82 +82,27 @@ export default function Invoices() {
       date: form.date
     });
 
-    const receiptData = {
-      date: form.date,
-      patient_name: searchTerm,
-      total_price: patientTotal,
-      total_debt: requiredAmt,
-      paid: paidAmt,
-      patient_debt: Math.max(0, requiredAmt - paidAmt),
-      status: paidAmt >= requiredAmt ? "مدفوع" : "جزء من الحساب"
-    };
-    printReceiptIframe(receiptData);
+    if (res.ok) {
+       // We'd ideally need the ID of the new invoice to print PDF immediately.
+       // For now, let's just refresh, the user can print from the table.
+       // Or the backend 'addInvoice' should return the ID.
+    }
 
     setModal(false); load();
     setSearchTerm("");
   };
 
-  const printReceiptIframe = (receipt) => {
-    let iframe = document.getElementById('receipt-print-iframe');
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'receipt-print-iframe';
-      iframe.style.position = 'absolute'; iframe.style.width = '0px'; iframe.style.height = '0px'; iframe.style.border = 'none';
-      document.body.appendChild(iframe);
+  const printPDFReceipt = async (invoiceId) => {
+    const url = getInvoicePDFUrl(invoiceId);
+    try {
+      const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+      const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (e) {
+      console.error("PDF error:", e);
+      alert("فشل في استرداد وصل الاستلام");
     }
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(`
-      <html dir="rtl">
-        <head>
-          <title>طباعة الوصل</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
-            @page { margin: 0; size: auto; }
-            body { font-family: 'Tajawal', sans-serif; padding: 0; margin: 0; color: black; background: white; -webkit-print-color-adjust: exact; display: flex; flex-direction: column; min-height: 100vh; }
-            .header-img { width: 100%; max-height: 180px; display: block; object-fit: contain; }
-            .footer-img { width: 100%; max-height: 120px; display: block; object-fit: contain; margin-top: auto; }
-            .content { padding: 20px 40px; flex: 1; page-break-inside: avoid; }
-            .header-text { text-align: center; padding: 30px 0; }
-            .logo { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; margin-bottom: 10px; }
-            h2 { margin: 0; font-size: 24px; font-weight: 800; color: #111; }
-            .subtitle { font-size: 15px; color: #444; margin-top: 8px; font-weight: 700; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 4px; }
-            .receipt-box { border: 2px solid #000; padding: 20px; border-radius: 16px; background: #fff; margin-top: 10px; }
-            .row { display: flex; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px dashed #ddd; padding-bottom: 10px; }
-            .row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-            .label { font-weight: 700; font-size: 15px; color: #333; }
-            .val { font-weight: 800; font-size: 17px; color: #000; }
-            .footer-text { text-align: center; margin-top: 25px; font-size: 14px; color: #555; font-weight: 500; }
-            @media print { html, body { height: 100%; } .no-print { display: none !important; } }
-          </style>
-        </head>
-        <body>
-          ${(settings?.receipt_header || settings?.prescription_header) ? `<img src="${settings.receipt_header || settings.prescription_header}" class="header-img" />` : `
-            <div class="header-text">
-              ${settings?.clinic_logo ? `<img src="${BASE + settings.clinic_logo}" class="logo" />` : ''}
-              <h2>${settings?.clinic_name || "SmileCare Clinic"}</h2>
-              <div class="subtitle">وصل استلام مالي (Receipt)</div>
-            </div>
-          `}
-          <div class="content">
-            ${(settings?.receipt_header || settings?.prescription_header) ? '<div style="text-align: center; margin-bottom: 10px;"><div class="subtitle">وصل استلام مالي (Receipt)</div></div>' : ''}
-            <div class="receipt-box">
-              <div class="row"><span class="label">التاريخ:</span><span class="val">${receipt.date}</span></div>
-              <div class="row"><span class="label">اسم المريض:</span><span class="val">${receipt.patient_name}</span></div>
-              <div class="row"><span class="label">السعر الكلي للعلاج:</span><span class="val">${(receipt.total_price || 0).toLocaleString()} د.ع</span></div>
-              <div class="row"><span class="label">إجمالي الديون السابقة:</span><span class="val">${(receipt.total_debt !== undefined ? receipt.total_debt : ((receipt.patient_debt || 0) + (receipt.paid || 0))).toLocaleString()} د.ع</span></div>
-              <div class="row"><span class="label">الدفعة الحالية:</span><span class="val" style="font-size: 20px;">${(receipt.paid || 0).toLocaleString()} د.ع</span></div>
-              <div class="row"><span class="label">المتبقي من الديون:</span><span class="val">${(receipt.patient_debt || 0).toLocaleString()} د.ع</span></div>
-            </div>
-            <div class="footer-text">شكراً لزيارتكم ونتمنى لكم دوام الصحة والعافية ✨</div>
-          </div>
-          ${(settings?.receipt_footer || settings?.prescription_footer) ? `<img src="${settings.receipt_footer || settings.prescription_footer}" class="footer-img" />` : ''}
-        </body>
-      </html>
-    `);
-    doc.close();
-    setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); }, 300);
   };
 
   const filteredPatients = patients.filter(p =>
@@ -176,7 +121,18 @@ export default function Invoices() {
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700 }}>{t("الفواتير والمدفوعات")}</h2>
         <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={() => window.print()} className="btn-secondary" style={{ padding: "8px 16px" }}>🖨 {t("طباعة التقرير")}</button>
+          <button onClick={async () => {
+            const url = getDailySummaryPDFUrl();
+            try {
+              const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+              const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
+              const blob = await res.blob();
+              window.open(URL.createObjectURL(blob), "_blank");
+            } catch (e) {
+              console.error("PDF error:", e);
+              alert("فشل في استرداد ملخص اليوم");
+            }
+          }} className="btn-secondary" style={{ padding: "8px 16px" }}>🖨 {t("طباعة التقرير")}</button>
           <button onClick={() => { setForm({ patient_id: "", agreed_price: "", paid: "", payment_method: "Cash", date: localDate(), notes: "" }); setSearchTerm(""); setModal(true); }} className="btn-primary">
             <span>+</span> {t("إصدار فاتورة جديدة")}
           </button>
@@ -215,7 +171,7 @@ export default function Invoices() {
                     <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: i.status === "مدفوع" ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)", color: i.status === "مدفوع" ? "#10b981" : "#f59e0b" }}>{t(i.status)}</span>
                   </td>
                   <td style={{ padding: "14px 20px" }}>
-                    <button onClick={() => printReceiptIframe({ date: i.date, patient_name: i.patient_name, total_price: i.total_price || 0, patient_debt: i.patient_debt || 0, paid: i.paid || 0, status: i.status })} className="btn-ghost" style={{ padding: "5px 12px", fontSize: 12 }}>🖨</button>
+                    <button onClick={() => printPDFReceipt(i.id)} className="btn-ghost" style={{ padding: "5px 12px", fontSize: 12 }}>🖨</button>
                   </td>
                 </tr>
               ))}

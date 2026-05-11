@@ -293,3 +293,87 @@ def delete_patient(id):
     
     g.db.commit()
     return jsonify({"ok": True})
+@patients_bp.route("/<int:id>/report-pdf", methods=["GET"])
+@db_required
+def download_patient_report_pdf(id):
+    from flask import send_file
+    import io
+    from pdf_utils import get_pdf_styles, add_header_footer, force_english
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    import json
+
+    p = g.db.execute("SELECT * FROM patients WHERE id=?", (id,)).fetchone()
+    if not p: return jsonify({"error": "NotFound"}), 404
+
+    treatments = g.db.execute("SELECT * FROM treatment_logs WHERE patient_id=? ORDER BY date DESC", (id,)).fetchall()
+    invoices = g.db.execute("SELECT * FROM invoices WHERE patient_id=? ORDER BY date DESC", (id,)).fetchall()
+    
+    settings_rows = g.db.execute("SELECT key, value FROM settings").fetchall()
+    clinic = {row["key"]: row["value"] for row in settings_rows}
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=60*mm, bottomMargin=45*mm)
+    styles = get_pdf_styles()
+    story = []
+
+    story.append(Paragraph(f"Patient Medical Report", styles["title"]))
+    story.append(Spacer(1, 10*mm))
+
+    # Basic Info Table
+    story.append(Paragraph("Patient Information", styles["label"]))
+    info_data = [
+        ["Full Name:", force_english(f"{p['first_name']} {p['last_name']}")],
+        ["Phone:", p['phone']],
+        ["Age / Gender:", f"{p['age']} / {p['gender']}"],
+        ["Occupation:", force_english(p['occupation']) or "-"],
+        ["Conditions:", force_english(p['systemic_conditions']) or "None"]
+    ]
+    for lbl, val in info_data:
+        story.append(Table([[Paragraph(lbl, styles["normal"]), Paragraph(val, styles["value"])]], colWidths=[40*mm, 130*mm]))
+
+    story.append(Spacer(1, 10*mm))
+
+    # Treatments
+    story.append(Paragraph("Treatment History", styles["label"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#185FA5")))
+    story.append(Spacer(1, 4*mm))
+    
+    if treatments:
+        t_data = [["Date", "Tooth", "Procedure", "Cost"]]
+        for t in treatments:
+            t_data.append([t['date'], str(t['tooth_number']), force_english(t['procedure']), f"{t['cost']:,.0f}"])
+        
+        tt = Table(t_data, colWidths=[30*mm, 20*mm, 90*mm, 30*mm])
+        tt.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.whitesmoke), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.lightgrey), ('PADDING', (0,0), (-1,-1), 6)]))
+        story.append(tt)
+    else:
+        story.append(Paragraph("No treatments recorded.", styles["normal"]))
+
+    story.append(Spacer(1, 10*mm))
+
+    # Financial Status
+    story.append(Paragraph("Financial History (Payments)", styles["label"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#10b981")))
+    story.append(Spacer(1, 4*mm))
+    
+    if invoices:
+        inv_data = [["Date", "Status", "Method", "Paid Amount"]]
+        for inv in invoices:
+            inv_data.append([inv['date'], force_english(inv['status']), inv['payment_method'], f"{inv['paid_amount']:,.0f}"])
+        
+        it = Table(inv_data, colWidths=[35*mm, 35*mm, 40*mm, 60*mm])
+        it.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.whitesmoke), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.lightgrey), ('PADDING', (0,0), (-1,-1), 6)]))
+        story.append(it)
+        
+        total_paid = sum(i['paid_amount'] for i in invoices)
+        story.append(Spacer(1, 5*mm))
+        story.append(Paragraph(f"<b>Total Amount Paid: {total_paid:,.0f} IQD</b>", styles["value"]))
+    else:
+        story.append(Paragraph("No payments recorded.", styles["normal"]))
+
+    doc.build(story, onFirstPage=lambda c, d: add_header_footer(c, d, clinic), onLaterPages=lambda c, d: add_header_footer(c, d, clinic))
+    buf.seek(0)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name=f"report_{id}.pdf")

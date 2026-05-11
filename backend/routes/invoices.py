@@ -145,3 +145,73 @@ def delete_invoice(id):
     g.db.execute("DELETE FROM invoices WHERE id = ?", (id,))
     g.db.commit()
     return jsonify({"ok": True})
+@invoices_bp.route("/<int:id>/pdf", methods=["GET"])
+@db_required
+def download_invoice_pdf(id):
+    from flask import send_file
+    import io
+    from pdf_utils import get_pdf_styles, add_header_footer, force_english
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+
+    inv = g.db.execute("""
+        SELECT i.*, p.first_name || ' ' || p.last_name AS patient_name, p.phone, p.payment_system, p.total_agreed_price 
+        FROM invoices i 
+        JOIN patients p ON i.patient_id = p.id 
+        WHERE i.id = ?
+    """, (id,)).fetchone()
+    if not inv: return jsonify({"error": "NotFound"}), 404
+
+    settings_rows = g.db.execute("SELECT key, value FROM settings").fetchall()
+    clinic = {row["key"]: row["value"] for row in settings_rows}
+
+    # Calculate debt logic
+    stats = g.db.execute("SELECT SUM(total_amount) as total_charges, SUM(paid_amount) as total_paid FROM invoices WHERE patient_id = ?", (inv['patient_id'],)).fetchone()
+    limit = inv['total_agreed_price'] if inv['payment_system'] != 'sessions' else stats['total_charges']
+    current_total_paid = stats['total_paid']
+    
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=60*mm, bottomMargin=45*mm)
+    styles = get_pdf_styles()
+    story = []
+
+    story.append(Paragraph("Payment Receipt", styles["title"]))
+    story.append(Spacer(1, 10*mm))
+
+    # Patient & Invoice Info
+    info_data = [
+        [Paragraph("Patient Name", styles["label"]), Paragraph("Invoice ID", styles["label"]), Paragraph("Date", styles["label"])],
+        [Paragraph(force_english(inv['patient_name']), styles["value"]), Paragraph(f"#{inv['id']}", styles["value"]), Paragraph(inv['date'], styles["value"])]
+    ]
+    t = Table(info_data, colWidths=[90*mm, 40*mm, 40*mm])
+    t.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.whitesmoke), ('LINEBELOW', (0,0), (-1,0), 1, colors.lightgrey), ('PADDING', (0,0), (-1,-1), 8)]))
+    story.append(t)
+    story.append(Spacer(1, 15*mm))
+
+    # Financial Details
+    story.append(Paragraph("Financial Details", styles["label"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#185FA5")))
+    story.append(Spacer(1, 5*mm))
+
+    fin_data = [
+        ["Total Treatment Price:", f"{(limit or 0):,.0f} IQD"],
+        ["Previous Total Paid:", f"{(current_total_paid - inv['paid_amount']):,.0f} IQD"],
+        ["Current Payment:", f"{inv['paid_amount']:,.0f} IQD"],
+        ["New Total Paid:", f"{current_total_paid:,.0f} IQD"],
+        ["Remaining Balance:", f"{(limit - current_total_paid):,.0f} IQD"]
+    ]
+    
+    for label, val in fin_data:
+        row = [Paragraph(label, styles["normal"]), Paragraph(val, styles["value"])]
+        ft = Table([row], colWidths=[120*mm, 50*mm])
+        ft.setStyle(TableStyle([('ALIGN', (1,0), (1,0), 'RIGHT'), ('BOTTOMPADDING', (0,0), (-1,-1), 10)]))
+        story.append(ft)
+
+    story.append(Spacer(1, 20*mm))
+    story.append(Paragraph(f"Notes: {force_english(inv['notes']) or '-'}", styles["normal"]))
+
+    doc.build(story, onFirstPage=lambda c, d: add_header_footer(c, d, clinic), onLaterPages=lambda c, d: add_header_footer(c, d, clinic))
+    buf.seek(0)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name=f"receipt_{id}.pdf")

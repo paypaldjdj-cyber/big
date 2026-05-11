@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getPatient, saveTeeth, addInvoice, uploadPrescription, updatePatient, addTreatment, deleteTreatment, createSmartPrescription, addAppointment, updateAppointment, getPrescriptionPDFUrl, BASE } from "../api";
+import { getPatient, saveTeeth, addInvoice, uploadPrescription, updatePatient, addTreatment, deleteTreatment, createSmartPrescription, addAppointment, updateAppointment, getPrescriptionPDFUrl, getPatientReportPDFUrl, BASE } from "../api";
 import { useLanguage } from "../LanguageContext";
 import { createPortal } from "react-dom";
 import { useSettings } from "../SettingsContext";
@@ -171,10 +171,10 @@ export default function PatientProfile() {
           </table>
 
           <div class="summary">
-            <div class="summary-row"><span>إجمالي السعر المتفق عليه:</span><span>${agreedPrice.toLocaleString()} د.ع</span></div>
-            <div class="summary-row" style="color: #10b981;"><span>إجمالي المبالغ المدفوعة:</span><span>${totalPaid.toLocaleString()} د.ع</span></div>
+            <div class="summary-row"><span>إجمالي السعر المتفق عليه:</span><span>${(agreedPrice || 0).toLocaleString()} د.ع</span></div>
+            <div class="summary-row" style="color: #10b981;"><span>إجمالي المبالغ المدفوعة:</span><span>${(totalPaid || 0).toLocaleString()} د.ع</span></div>
             <div class="summary-row" style="color: #ef4444; font-size: 20px; border-top: 2px solid #ddd; padding-top: 10px; margin-top: 10px;">
-              <span>المتبقي النهائي (الدين):</span><span>${remaining.toLocaleString()} د.ع</span>
+              <span>المتبقي النهائي (الدين):</span><span>${(remaining || 0).toLocaleString()} د.ع</span>
             </div>
           </div>
 
@@ -927,7 +927,18 @@ export default function PatientProfile() {
                    </div>
                    <div style={{ display: "flex", gap: 12, marginTop: 30 }} className="no-print">
                       <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSessionStep(3)}>← {t("السابق")}</button>
-                      <button className="btn-ghost" style={{ flex: 1 }} onClick={() => window.print()}>🖨 {t("طباعة الملخص")}</button>
+                      <button className="btn-ghost" style={{ flex: 1 }} onClick={async () => {
+                        const url = getPatientReportPDFUrl(id);
+                        try {
+                          const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+                          const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
+                          const blob = await res.blob();
+                          window.open(URL.createObjectURL(blob), "_blank");
+                        } catch (e) {
+                          console.error("PDF error:", e);
+                          alert("فشل في استرداد التقرير الطبي");
+                        }
+                      }}>🖨 {t("طباعة الملخص")}</button>
                       <button className="btn-primary" disabled={isSavingSession} style={{ flex: 2, position: "relative" }} onClick={async () => {
                           setIsSavingSession(true);
                           try {

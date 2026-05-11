@@ -127,7 +127,14 @@ export default function Prescriptions() {
 
 function PrescriptionCard({ pr, settings, onClick }) {
   const { t } = useLanguage();
-  const drugs = pr.drugs_json ? JSON.parse(pr.drugs_json) : [];
+  const drugs = (() => {
+    try {
+      return pr.drugs_json ? JSON.parse(pr.drugs_json) : [];
+    } catch (e) {
+      console.error("Drugs parse error:", e);
+      return [];
+    }
+  })();
 
   return (
     <div className="glass-panel" style={{ padding: 16, cursor: "pointer", transition: "all 0.2s" }} onClick={onClick}>
@@ -190,11 +197,16 @@ function PrescriptionCard({ pr, settings, onClick }) {
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
         <button onClick={async (e) => {
           e.stopPropagation();
-          const url = getPrescriptionPDFUrl(pr.id);
-          const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
-          const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
-          const blob = await res.blob();
-          window.open(URL.createObjectURL(blob), "_blank");
+          try {
+            const url = getPrescriptionPDFUrl(pr.id);
+            const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
+            const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
+            const blob = await res.blob();
+            window.open(URL.createObjectURL(blob), "_blank");
+          } catch (err) {
+            console.error("Print error:", err);
+            alert("فشل في طباعة الوصفة");
+          }
         }} className="btn-ghost" style={{ fontSize: 11, padding: "4px 12px", border: "1px solid rgba(255,255,255,0.1)" }}>🖨 Print</button>
       </div>
     </div>

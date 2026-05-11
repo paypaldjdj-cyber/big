@@ -1,12 +1,18 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../LanguageContext";
 
 export default function ConfirmModal({ show, title, message, onConfirm, onCancel, confirmText, cancelText, danger }) {
   const { t } = useLanguage();
-  if (!show) return null;
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
-  const isMobile = document.body.classList.contains("mobile-mode");
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  if (!show) return null;
 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}>

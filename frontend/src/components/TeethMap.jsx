@@ -280,7 +280,7 @@ function ToothIcon({ id, status, surfaceData = {}, onSurfaceClick, onToothClick,
           <div style={{ color: "#cbd5e1", lineHeight: 1.4 }}>{lastLog.notes}</div>
           <div style={{ fontSize: 9, marginTop: 8, color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
              <span>📅 {lastLog.date}</span>
-             <span style={{ color: "#10b981" }}>{lastLog.cost?.toLocaleString()} د</span>
+             <span style={{ color: "#10b981" }}>{(lastLog.cost || 0).toLocaleString()} د</span>
           </div>
         </div>
       )}
