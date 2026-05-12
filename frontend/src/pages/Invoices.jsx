@@ -151,7 +151,7 @@ export default function Invoices() {
 
       <div className="glass-panel">
         <div className="table-container">
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="mobile-card-table" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.03)" }}>
                 {[t("المريض"), t("التاريخ"), t("السعر الكلي للعلاج"), t("المدفوع الآن"), t("دين المريض الكلي"), t("الحالة"), t("إجراء")].map(h => (
@@ -162,15 +162,15 @@ export default function Invoices() {
             <tbody>
               {invoices.map(i => (
                 <tr key={i.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                  <td style={{ padding: "14px 20px", fontWeight: 500 }}>{i.patient_name}</td>
-                  <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-muted)" }}>{i.date}</td>
-                  <td style={{ padding: "14px 20px", fontSize: 13 }}>{(i.total_price || 0).toLocaleString()} د</td>
-                  <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--success)" }}>{(i.paid || 0).toLocaleString()} د</td>
-                  <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>{Math.max(0, i.patient_debt || 0).toLocaleString()} د</td>
-                  <td style={{ padding: "14px 20px" }}>
+                  <td data-label={t("المريض")} style={{ padding: "14px 20px", fontWeight: 500 }}>{i.patient_name}</td>
+                  <td data-label={t("التاريخ")} style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-muted)" }}>{i.date}</td>
+                  <td data-label={t("السعر الكلي للعلاج")} style={{ padding: "14px 20px", fontSize: 13 }}>{(i.total_price || 0).toLocaleString()} د</td>
+                  <td data-label={t("المدفوع الآن")} style={{ padding: "14px 20px", fontSize: 13, color: "var(--success)" }}>{(i.paid || 0).toLocaleString()} د</td>
+                  <td data-label={t("دين المريض الكلي")} style={{ padding: "14px 20px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>{Math.max(0, i.patient_debt || 0).toLocaleString()} د</td>
+                  <td data-label={t("الحالة")} style={{ padding: "14px 20px" }}>
                     <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: i.status === "مدفوع" ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)", color: i.status === "مدفوع" ? "#10b981" : "#f59e0b" }}>{t(i.status)}</span>
                   </td>
-                  <td style={{ padding: "14px 20px" }}>
+                  <td data-label={t("إجراء")} style={{ padding: "14px 20px" }}>
                     <button onClick={() => printPDFReceipt(i.id)} className="btn-ghost" style={{ padding: "5px 12px", fontSize: 12 }}>🖨</button>
                   </td>
                 </tr>

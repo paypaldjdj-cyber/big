@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getPatient, saveTeeth, addInvoice, uploadPrescription, updatePatient, addTreatment, deleteTreatment, createSmartPrescription, addAppointment, updateAppointment, getPrescriptionPDFUrl, getPatientReportPDFUrl, BASE } from "../api";
 import { useLanguage } from "../LanguageContext";
 import { createPortal } from "react-dom";
@@ -24,6 +24,7 @@ const ReportRow = ({ label, val, unit, color, bold }) => (
 export default function PatientProfile() {
   const { id } = useParams();
   const nav = useNavigate();
+  const location = useLocation();
   const { lang, t } = useLanguage();
   const { settings } = useSettings();
   const [patient, setPatient] = useState(null);
@@ -97,16 +98,16 @@ export default function PatientProfile() {
     };
     window.addEventListener('openAddTreatment', handleOpenAdd);
 
-    // Auto-start session if redirected from schedule
-    const params = new URLSearchParams(window.location.search);
+    // Auto-start session if redirected from schedule using React Router's location
+    const params = new URLSearchParams(location.search);
     if (params.get('action') === 'start-session' && sessionStep === null) {
       setSessionStep(0);
       // Clean up URL without refreshing
-      window.history.replaceState({}, '', window.location.pathname);
+      nav(location.pathname, { replace: true });
     }
 
     return () => window.removeEventListener('openAddTreatment', handleOpenAdd);
-  }, []);
+  }, [location.search, location.pathname, nav, sessionStep]);
 
   const saveProfile = async (updates) => {
     await updatePatient(id, updates);
@@ -523,7 +524,7 @@ export default function PatientProfile() {
                   <button className="btn-primary" onClick={() => setPayModal({ show: true, amount: remaining > 0 ? remaining : "", session_cost: "", method: "Cash", notes: "" })}>{t("+ إضافة")}</button>
                 </div>
               </div>
-              <table style={{ width: "100%" }}>
+              <table className="mobile-card-table" style={{ width: "100%" }}>
                 <thead>
                   <tr style={{ textAlign: lang === "ar" ? "right" : "left", fontSize: 12, color: "var(--text-muted)" }}>
                     <th style={{ padding: 10 }}>{t("التاريخ")}</th>
@@ -535,12 +536,12 @@ export default function PatientProfile() {
                 <tbody>
                   {payments.map((p, i) => (
                     <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                      <td style={{ padding: 10 }}>{p.date}</td>
-                      <td style={{ padding: 10, fontWeight: 700, color: (parseFloat(p.paid) || 0) > 0 ? "#10b981" : "white" }}>
+                      <td data-label={t("التاريخ")} style={{ padding: 10 }}>{p.date}</td>
+                      <td data-label={t("المبلغ")} style={{ padding: 10, fontWeight: 700, color: (parseFloat(p.paid) || 0) > 0 ? "#10b981" : "white" }}>
                         {(parseFloat(p.paid) || parseFloat(p.paid_amount) || 0).toLocaleString()} د
                       </td>
-                      <td style={{ padding: 10, color: "var(--text-muted)", fontSize: 13 }}>{p.notes}</td>
-                      <td style={{ padding: 10 }}>
+                      <td data-label={t("ملاحظات")} style={{ padding: 10, color: "var(--text-muted)", fontSize: 13 }}>{p.notes}</td>
+                      <td data-label={t("إجراء")} style={{ padding: 10 }}>
                         <button 
                           onClick={() => printReceiptIframe({
                             date: p.date,
@@ -860,85 +861,137 @@ export default function PatientProfile() {
                )}
 
                {sessionStep === 4 && (
-                 <div className="animate-fade" id="printable-session-summary">
-                   <h3 style={{ textAlign: "center", color: "var(--success)" }}>✅ {t("ملخص الجلسة")}</h3>
-                   <div className="glass-panel" style={{ padding: 24, marginTop: 20, border: "2px solid rgba(16, 185, 129, 0.3)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, alignItems: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          {settings?.clinic_logo && <img src={BASE + settings.clinic_logo} alt="Logo" style={{ width: 50, height: 50, borderRadius: 12, objectFit: "cover" }} />}
+                 <div className="animate-fade" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                   <div id="printable-session-summary" style={{ 
+                     background: "white", 
+                     color: "black", 
+                     padding: isMobile ? "20px" : "40px", 
+                     borderRadius: "8px", 
+                     boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                     width: "100%",
+                     maxWidth: "800px",
+                     margin: "0 auto",
+                     fontFamily: "'Inter', 'Cairo', sans-serif"
+                   }}>
+                      {/* Header */}
+                      <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #f1f5f9", paddingBottom: "20px", marginBottom: "20px", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+                          {settings?.clinic_logo ? (
+                            <img src={BASE + settings.clinic_logo} alt="Logo" style={{ width: 60, height: 60, borderRadius: "8px", objectFit: "contain" }} />
+                          ) : (
+                            <div style={{ width: 60, height: 60, background: "#f8fafc", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🏥</div>
+                          )}
                           <div>
-                            <div style={{ fontWeight: 800, fontSize: 20, color: "black" }}>{settings?.clinic_name || "SmileCare Clinic"}</div>
-                            {settings?.doctor_name && <div style={{ fontSize: 13, color: "#666" }}>{settings.doctor_name}</div>}
+                            <div style={{ fontWeight: 800, fontSize: isMobile ? 18 : 24, color: "#1e293b" }}>{settings?.clinic_name || "SmileCare Clinic"}</div>
+                            {settings?.doctor_name && <div style={{ fontSize: isMobile ? 12 : 16, color: "#64748b" }}>{settings.doctor_name}</div>}
                           </div>
                         </div>
-                        <span style={{ fontWeight: 600, color: "black" }}>{localDate()}</span>
+                        <div style={{ textAlign: "left" }}>
+                          <h2 style={{ margin: 0, color: "#0ea5e9", fontSize: isMobile ? 18 : 24 }}>{t("تقرير الجلسة")}</h2>
+                          <div style={{ fontWeight: 600, color: "#64748b", marginTop: 5, fontSize: isMobile ? 12 : 14 }}>{localDate()}</div>
+                        </div>
                       </div>
-                      <ReportRow label={t("المريض")} val={patient.first_name + " " + patient.last_name} unit="" />
-                       <div style={{ margin: "15px 0", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 15 }}>
-                         <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 14 }}>📋 {t("الإجراءات المنفذة")}:</div>
-                         {sessionData.treatments.map((tr, i) => (
-                           <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6, background: "rgba(255,255,255,0.02)", padding: "8px 12px", borderRadius: 8 }}>
-                             <span>{tr.tooth === "General" ? `🌐 ${t("إجراء عام")}` : `🦷 ${t("السن")} #${tr.tooth}`} - {tr.procedure}</span>
-                           </div>
-                         ))}
-                       </div>
-                       
-                       <div className="summary-3d-container" style={{ margin: "10px auto", width: 200, height: 200, position: "relative", overflow: "hidden", background: "white", borderRadius: 16 }}>
-                         <TeethMap3D 
-                            pid={id} 
-                            data={sessionData.teeth} 
-                            onChange={() => {}} 
-                            treatments={sessionData.treatments} 
-                            noControls={true}
-                         />
-                       </div>
+                      
+                      {/* Patient Details */}
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 15 : 40, marginBottom: 30, padding: "15px", background: "#f8fafc", borderRadius: "8px" }}>
+                        <div><span style={{ color: "#64748b", fontSize: 13 }}>{t("المريض")}:</span> <strong style={{ fontSize: 16, marginLeft: 8 }}>{patient.first_name + " " + patient.last_name}</strong></div>
+                        <div><span style={{ color: "#64748b", fontSize: 13 }}>{t("العمر")}:</span> <strong style={{ fontSize: 16, marginLeft: 8 }}>{patient.age}</strong></div>
+                        <div><span style={{ color: "#64748b", fontSize: 13 }}>{t("الجنس")}:</span> <strong style={{ fontSize: 16, marginLeft: 8 }}>{patient.gender}</strong></div>
+                      </div>
+
+                      {/* Main Content Grid */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+                        {/* Treatments */}
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 18, color: "#1e293b", marginBottom: 15, borderBottom: "1px solid #e2e8f0", paddingBottom: 8 }}>🦷 {t("الإجراءات المنفذة")}</div>
+                          {sessionData.treatments.length > 0 ? (
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                              <thead>
+                                <tr style={{ background: "#f1f5f9" }}>
+                                  <th style={{ padding: "10px", color: "#64748b", textAlign: "right" }}>{t("السن")}</th>
+                                  <th style={{ padding: "10px", color: "#64748b", textAlign: "right" }}>{t("الإجراء الطبي")}</th>
+                                  <th style={{ padding: "10px", color: "#64748b", textAlign: "right" }}>{t("ملاحظات")}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sessionData.treatments.map((tr, i) => (
+                                  <tr key={i} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                                    <td style={{ padding: "12px 10px", fontWeight: "bold", width: "80px" }}>{tr.tooth === "General" ? `🌐 ${t("عام")}` : `#${tr.tooth}`}</td>
+                                    <td style={{ padding: "12px 10px", color: "#1e293b", fontWeight: 600 }}>{tr.procedure}</td>
+                                    <td style={{ padding: "12px 10px", color: "#64748b", fontSize: 13 }}>{tr.notes || "-"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <div style={{ color: "#94a3b8", fontStyle: "italic", padding: "10px" }}>{t("لا توجد إجراءات مسجلة لهذه الجلسة.")}</div>
+                          )}
+                        </div>
+
+                        <div style={{ display: "flex", gap: 30, alignItems: "stretch", flexWrap: isMobile ? "wrap" : "nowrap" }}>
+                          {/* 3D Map */}
+                          <div style={{ flex: 1, minWidth: "250px" }}>
+                            <div style={{ fontWeight: 800, fontSize: 18, color: "#1e293b", marginBottom: 15, borderBottom: "1px solid #e2e8f0", paddingBottom: 8 }}>🗺️ {t("مخطط الأسنان")}</div>
+                            <div className="summary-3d-container" style={{ position: "relative", width: "100%", height: "250px", background: "#f8fafc", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0", display: "block" }}>
+                              <TeethMap3D 
+                                 pid={id} 
+                                 data={sessionData.teeth} 
+                                 onChange={() => {}} 
+                                 treatments={sessionData.treatments} 
+                                 noControls={true}
+                                 forceFullView={true}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Meds */}
+                          <div style={{ flex: 1, minWidth: "250px" }}>
+                            <div style={{ fontWeight: 800, fontSize: 18, color: "#1e293b", marginBottom: 15, borderBottom: "1px solid #e2e8f0", paddingBottom: 8 }}>💊 {t("الأدوية الموصوفة")}</div>
+                            {sessionData.meds?.length > 0 ? (
+                              <ul style={{ padding: 0, margin: 0, listStyle: "none" }}>
+                                {sessionData.meds.map((m, i) => (
+                                  <li key={i} style={{ marginBottom: 10, padding: "12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                                    <div style={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>{m.name} <span style={{ fontWeight: 400, fontSize: 12, color: "#64748b" }}>({m.form})</span></div>
+                                    <div style={{ fontSize: 13, color: "#334155" }}>
+                                      <strong>{t("الجرعة")}:</strong> {m.dose} <span style={{ margin: "0 6px", color: "#cbd5e1" }}>|</span> 
+                                      <strong>{t("التكرار")}:</strong> {m.timing} <span style={{ margin: "0 6px", color: "#cbd5e1" }}>|</span> 
+                                      <strong>{t("المدة")}:</strong> {m.duration}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div style={{ color: "#94a3b8", fontStyle: "italic", padding: "20px", textAlign: "center", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>{t("لم يتم صرف أدوية في هذه الجلسة")}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
 
                        <style>{`
                          @media print {
-                           body { background: white !important; -webkit-print-color-adjust: exact; }
+                           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                            body * { visibility: hidden; }
                            #printable-session-summary, #printable-session-summary * { visibility: visible; }
                            #printable-session-summary { 
-                             position: fixed; 
+                             position: absolute; 
                              left: 0; 
                              top: 0; 
                              width: 100%; 
                              background: white !important; 
-                             color: black !important;
-                             padding: 0 !important;
+                             padding: 20px !important;
                              margin: 0 !important;
-                           }
-                           .summary-3d-container { 
-                             width: 220px !important; 
-                             height: 220px !important; 
-                             border: 1px solid #ddd !important; 
-                             background: white !important; 
-                             margin: 20px auto !important; 
-                             border-radius: 10px !important; 
+                             box-shadow: none !important;
                            }
                            .no-print { display: none !important; visibility: hidden !important; }
                          }
                        `}</style>
-
-                      <div style={{ marginTop: 20 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 8 }}>💊 {t("الأدوية الموصوفة")}:</div>
-                        {sessionData.meds?.length > 0 ? sessionData.meds.map((m, i) => <div key={i} style={{ fontSize: 13 }}>• {m.name} ({m.dose})</div>) : t("لا توجد أدوية")}
-                      </div>
                    </div>
-                   <div style={{ display: "flex", gap: 12, marginTop: 30 }} className="no-print">
+                   
+                   <div style={{ display: "flex", gap: 12 }} className="no-print">
                       <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSessionStep(3)}>← {t("السابق")}</button>
-                      <button className="btn-ghost" style={{ flex: 1 }} onClick={async () => {
-                        const url = getPatientReportPDFUrl(id);
-                        try {
-                          const user = JSON.parse(localStorage.getItem("clinic_user") || "{}");
-                          const res = await fetch(url, { headers: { "Authorization": `Bearer ${user.token}` } });
-                          const blob = await res.blob();
-                          window.open(URL.createObjectURL(blob), "_blank");
-                        } catch (e) {
-                          console.error("PDF error:", e);
-                          alert("فشل في استرداد التقرير الطبي");
-                        }
-                      }}>🖨 {t("طباعة الملخص")}</button>
+                      <button className="btn-ghost" style={{ flex: 1, border: "2px solid #cbd5e1", background: "white", color: "#0ea5e9", fontWeight: "bold" }} onClick={() => window.print()}>
+                        🖨 {t("طباعة التقرير")}
+                      </button>
                       <button className="btn-primary" disabled={isSavingSession} style={{ flex: 2, position: "relative" }} onClick={async () => {
                           setIsSavingSession(true);
                           try {
@@ -1003,6 +1056,13 @@ function ClinicalTimeline({ patient, treatments, prescriptions, visits, pid, ini
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTooth, setSelectedTooth] = useState(initialTooth || null);
   const [viewMode, setViewMode] = useState("teeth"); // Default to teeth mode as requested
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Group events by date
   const eventsByDate = {};
@@ -1069,31 +1129,28 @@ function ClinicalTimeline({ patient, treatments, prescriptions, visits, pid, ini
 
   return (
     <div style={{ minHeight: 700 }}>
-      {/* Debug Info (Hidden/Subtle) */}
-      <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 10, display: "flex", flexWrap: "wrap", gap: 15 }}>
-        <span>Total Logs: {totalTreatmentsCount}</span>
-        <span>Found Teeth: {allTreatedTeeth.join(", ") || "None"}</span>
-        <span style={{ color: "var(--primary)" }}>Raw Values: {treatments.slice(0, 5).map(t => `'${t.tooth_number}'`).join(", ")}</span>
-      </div>
-
       {/* Header with toggle */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 30 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>🦷 {t("السجل المتكامل للأسنان")}</h2>
-        <div style={{ background: "rgba(255,255,255,0.05)", padding: 4, borderRadius: 12, display: "flex", gap: 4 }}>
-          <button onClick={() => setViewMode("teeth")} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: viewMode === "teeth" ? "var(--primary)" : "transparent", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>🦷 {t("حسب السن")}</button>
-          <button onClick={() => setViewMode("sessions")} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: viewMode === "sessions" ? "var(--primary)" : "transparent", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>🗓️ {t("حسب الجلسة")}</button>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 30, gap: 15 }}>
+        <h2 style={{ margin: 0, fontSize: isMobile ? 18 : 22, fontWeight: 800, textAlign: isMobile ? "center" : "right", width: isMobile ? "100%" : "auto" }}>🦷 {t("السجل المتكامل للأسنان")}</h2>
+        <div style={{ background: "rgba(255,255,255,0.05)", padding: 4, borderRadius: 12, display: "flex", gap: 4, width: isMobile ? "100%" : "auto" }}>
+          <button onClick={() => setViewMode("teeth")} style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: viewMode === "teeth" ? "var(--primary)" : "transparent", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", flex: isMobile ? 1 : "none" }}>🦷 {t("حسب السن")}</button>
+          <button onClick={() => setViewMode("sessions")} style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: viewMode === "sessions" ? "var(--primary)" : "transparent", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", flex: isMobile ? 1 : "none" }}>🗓️ {t("حسب الجلسة")}</button>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "300px 1fr", gap: isMobile ? 20 : 32 }}>
         {viewMode === "teeth" ? (
           <>
             {/* Sidebar - Full Teeth Grid */}
             <div style={{ 
-              borderLeft: lang==="ar"?"none":"1px solid rgba(255,255,255,0.08)", 
-              borderRight: lang==="ar"?"1px solid rgba(255,255,255,0.08)":"none",
-              paddingRight: lang==="ar"?16:0, paddingLeft: lang==="ar"?0:16,
-              maxHeight: "70vh", overflowY: "auto"
+              borderLeft: isMobile ? "none" : (lang==="ar"?"none":"1px solid rgba(255,255,255,0.08)"), 
+              borderRight: isMobile ? "none" : (lang==="ar"?"1px solid rgba(255,255,255,0.08)":"none"),
+              paddingRight: isMobile ? 0 : (lang==="ar"?16:0), 
+              paddingLeft: isMobile ? 0 : (lang==="ar"?0:16),
+              maxHeight: isMobile ? "250px" : "70vh", 
+              overflowY: "auto",
+              borderBottom: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none",
+              paddingBottom: isMobile ? 15 : 0
             }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", letterSpacing: 1, marginBottom: 16 }}>{t("اختر رقم السن لعرض تاريخه")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>

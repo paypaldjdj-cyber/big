@@ -67,7 +67,7 @@ export default function Expenses() {
 
       <div className="glass-panel">
         <div className="table-container">
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="mobile-card-table" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.03)" }}>
                 {[t("التاريخ"), t("الفئة"), t("الملاحظات"), t("طريقة الدفع"), t("المبلغ"), t("إجراء")].map(h => (
@@ -76,18 +76,18 @@ export default function Expenses() {
               </tr>
             </thead>
             <tbody>
-              {list.map(e => (
+               {list.map(e => (
                 <tr key={e.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                  <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-muted)" }}>{e.date}</td>
-                  <td style={{ padding: "14px 20px" }}>
+                  <td data-label={t("التاريخ")} style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-muted)" }}>{e.date}</td>
+                  <td data-label={t("الفئة")} style={{ padding: "14px 20px" }}>
                     <span style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--glass-border)" }}>{t(e.category)}</span>
                   </td>
-                  <td style={{ padding: "14px 20px", fontSize: 13 }}>{e.notes || "—"}</td>
-                  <td style={{ padding: "14px 20px" }}>
+                  <td data-label={t("الملاحظات")} style={{ padding: "14px 20px", fontSize: 13 }}>{e.notes || "—"}</td>
+                  <td data-label={t("طريقة الدفع")} style={{ padding: "14px 20px" }}>
                     <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: e.payment_method === 'Bank' ? 'rgba(0,210,255,0.1)' : 'rgba(16,185,129,0.1)', color: e.payment_method === 'Bank' ? '#00D2FF' : '#10b981' }}>{e.payment_method || 'Cash'}</span>
                   </td>
-                  <td style={{ padding: "14px 20px", fontWeight: 700, color: "var(--danger)" }}>{(e.amount || 0).toLocaleString()} {t("د")}</td>
-                  <td style={{ padding: "14px 20px" }}>
+                  <td data-label={t("المبلغ")} style={{ padding: "14px 20px", fontWeight: 700, color: "var(--danger)" }}>{(e.amount || 0).toLocaleString()} {t("د")}</td>
+                  <td data-label={t("إجراء")} style={{ padding: "14px 20px" }}>
                     <button onClick={() => del(e.id)} className="btn-ghost" style={{ padding: "5px 12px", fontSize: 12, color: "var(--danger)" }}>{t("حذف")}</button>
                   </td>
                 </tr>

@@ -72,8 +72,17 @@ export default function Chat() {
     setDragStart({ x: e.clientX - pos.x, y: (window.innerHeight - e.clientY) - pos.y });
   };
 
+  const handleTouchStart = (e) => {
+    setIsDragging(true);
+    setMoved(false);
+    const touch = e.touches[0];
+    setDragStart({ x: touch.clientX - pos.x, y: (window.innerHeight - touch.clientY) - pos.y });
+  };
+
   const handleMouseMove = (e) => {
     if (!isDragging) return;
+    e.preventDefault();
+    if (!moved && Math.abs(e.movementX) < 2 && Math.abs(e.movementY) < 2) return;
     setMoved(true);
     let newX = e.clientX - dragStart.x;
     let newY = (window.innerHeight - e.clientY) - dragStart.y;
@@ -82,19 +91,37 @@ export default function Chat() {
     setPos({ x: newX, y: newY });
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    setMoved(true);
+    const touch = e.touches[0];
+    let newX = touch.clientX - dragStart.x;
+    let newY = (window.innerHeight - touch.clientY) - dragStart.y;
+    newX = Math.max(10, Math.min(window.innerWidth - 70, newX));
+    newY = Math.max(10, Math.min(window.innerHeight - 70, newY));
+    setPos({ x: newX, y: newY });
+  };
+
+  const handleDragEnd = () => setIsDragging(false);
 
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleDragEnd);
     } else {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleDragEnd);
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleDragEnd);
     };
   }, [isDragging]);
 
@@ -134,15 +161,20 @@ export default function Chat() {
     <div style={{ fontFamily: 'inherit' }} dir="rtl">
       {/* Draggable FAB */}
       <button 
-        className="chat-fab-animate"
+        className={!isDragging ? "chat-fab-animate" : ""}
         style={{
           position: 'fixed', bottom: `${pos.y}px`, left: `${pos.x}px`, width: '60px', height: '60px',
           borderRadius: '50%', background: 'linear-gradient(135deg, #0061ff 0%, #6033ff 100%)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: isDragging ? 'grabbing' : 'grab', zIndex: 999999, transition: isDragging ? 'none' : 'all 0.1s ease', border: 'none', color: '#fff',
-          touchAction: 'none'
+          boxShadow: isDragging ? '0 15px 45px rgba(0,0,0,0.4)' : '0 10px 30px rgba(0,0,0,0.3)', 
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: isDragging ? 'grabbing' : 'grab', zIndex: 999999, 
+          transition: isDragging ? 'none' : 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
+          border: 'none', color: '#fff',
+          touchAction: 'none',
+          transform: isDragging ? 'scale(1.1)' : 'scale(1)'
         }} 
         onMouseDown={handleMouseDown} 
+        onTouchStart={handleTouchStart}
         onClick={() => { if (!moved) setIsOpen(!isOpen); }}
       >
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>

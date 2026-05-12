@@ -112,7 +112,7 @@ export default function Layout({ children }) {
       }}>
         <div style={{
           width: "100%",
-          maxWidth: isMobile ? "430px" : "100%",
+          maxWidth: isMobile ? "100%" : "100%",
           background: "var(--bg-dark)",
           minHeight: "100vh",
           position: "relative",
@@ -130,37 +130,40 @@ export default function Layout({ children }) {
             display: "flex", justifyContent: "space-between", alignItems: "center",
             marginBottom: isMobile ? 20 : 32, padding: "0 4px"
           }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 3 }}>{today}</div>
-              <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, lineHeight: 1.3, margin: 0 }}>
+            <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, whiteSpace: "nowrap" }}>{today}</div>
+              <h1 style={{ 
+                fontSize: isMobile ? 18 : 24, 
+                fontWeight: 800, 
+                lineHeight: 1.2, 
+                margin: 0, 
+                whiteSpace: "nowrap", 
+                overflow: "hidden", 
+                textOverflow: "ellipsis",
+                color: "white"
+              }}>
                 {isMobile
                   ? (settings?.clinic_name || t("عيادة سمايل كير"))
-                  : `${t("أهلاً بك")}، ${user?.role === "admin" ? "مدير النظام" : (user?.role === "secretary" ? t("سكرتيرة العيادة") : (settings?.doctor_name || t("دكتور")))}`
+                  : `${t("أهلاً بك")}， ${user?.role === "admin" ? "مدير النظام" : (user?.role === "secretary" ? t("سكرتيرة العيادة") : (settings?.doctor_name || t("دكتور")))}`
                 }
               </h1>
             </div>
 
-            {/* Global Search */}
-            <div className="desktop-only" style={{ flex: 1, minWidth: 200, display: "flex", justifyContent: "center" }}>
-               <div style={{ position: "relative", width: "100%", maxWidth: 300 }}>
-                 <input type="text" placeholder={t("بحث عام عن مريض...")} className="glass-input" 
-                  style={{ width: "100%", padding: "8px 16px", paddingLeft: 36, borderRadius: 20 }}
-                  onKeyDown={(e) => { 
-                    if (e.key === 'Enter') window.location.href = `/patients?q=${encodeURIComponent(e.target.value)}`; 
-                  }}
-                 />
-                 <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.5 }}>🔍</span>
-               </div>
-            </div>
+            {!isMobile && (
+              <div style={{ flex: 1, minWidth: 200, display: "flex", justifyContent: "center" }}>
+                 <div style={{ position: "relative", width: "100%", maxWidth: 300 }}>
+                   <input type="text" placeholder={t("بحث عام عن مريض...")} className="glass-input" 
+                    style={{ width: "100%", padding: "8px 16px", paddingLeft: 36, borderRadius: 20 }}
+                    onKeyDown={(e) => { 
+                      if (e.key === 'Enter') window.location.href = `/patients?q=${encodeURIComponent(e.target.value)}`; 
+                    }}
+                   />
+                   <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.5 }}>🔍</span>
+                 </div>
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-              <button onClick={toggleLanguage} className="glass-panel" style={{
-                fontSize: 12, fontWeight: 600, height: 34, padding: "0 12px",
-                borderRadius: 10, display: "flex", alignItems: "center",
-                border: "1px solid rgba(255,255,255,0.1)", background: "transparent", cursor: "pointer"
-              }}>
-                {lang === "ar" ? "EN" : "AR"}
-              </button>
 
               {/* Toggle button — desktop only */}
               {!isMobile && (
@@ -201,36 +204,46 @@ export default function Layout({ children }) {
       {isMobile && (
         <>
           {showMore && (
-            <div className="animate-fade" style={{
-              position: "fixed", bottom: 84,
-              left: "50%", transform: "translateX(-50%)",
-              width: "calc(100% - 24px)", maxWidth: 406, zIndex: 10000
+            <div className="mobile-more-popup" style={{
+              position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
+              width: "calc(100% - 32px)", maxWidth: 406, zIndex: 10001,
+              transformOrigin: "bottom center"
             }}>
               <div className="glass-panel" style={{
-                padding: 12, display: "grid", gridTemplateColumns: "1fr 1fr",
-                gap: 8, boxShadow: "0 10px 40px rgba(0,0,0,0.4)"
+                padding: "20px 16px", 
+                display: "grid", 
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: "12px", 
+                boxShadow: "0 25px 80px rgba(0,0,0,0.7)",
+                background: "rgba(15, 23, 42, 0.98)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: "28px"
               }}>
+                <div style={{ gridColumn: "1/-1", fontSize: 11, fontWeight: 800, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1, textAlign: "center", opacity: 0.7 }}>{t("جميع الأقسام")}</div>
                 {mobileSecondaryLinks.map(l => (
                   <NavLink key={l.to} to={l.to} onClick={() => setShowMore(false)}
                     className="nav-link" style={{
-                      background: "rgba(255,255,255,0.05)", padding: 14,
-                      borderRadius: 12, flexDirection: "row",
-                      justifyContent: "flex-start", gap: 10
+                      background: "rgba(255,255,255,0.03)", padding: "16px 8px",
+                      borderRadius: "20px", flexDirection: "column",
+                      justifyContent: "center", gap: 8, border: "1px solid rgba(255,255,255,0.05)",
+                      textAlign: "center"
                     }}>
-                    <span style={{ fontSize: 18 }}>{l.icon}</span>
-                    <span style={{ fontSize: 13 }}>{t(l.label)}</span>
+                    <span style={{ fontSize: 26, filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.2))" }}>{l.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "white" }}>{t(l.label)}</span>
                   </NavLink>
                 ))}
               </div>
             </div>
           )}
 
+          {showMore && <div onClick={() => setShowMore(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 10000 }}></div>}
+
           <nav className="mobile-nav no-print">
             {mobilePrimaryLinks.map(l => (
               <NavLink key={l.to} to={l.to} end={l.to === "/"} onClick={() => setShowMore(false)}
                 className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-                <span>{l.icon}</span>
-                <span>{t(l.label)}</span>
+                <span className="nav-icon">{l.icon}</span>
+                <span className="nav-label">{t(l.label)}</span>
               </NavLink>
             ))}
             <button
@@ -238,8 +251,18 @@ export default function Layout({ children }) {
               className={showMore ? "nav-link active" : "nav-link"}
               style={{ background: "transparent", border: "none", cursor: "pointer", flex: 1 }}
             >
-              <span style={{ fontSize: 24, color: "#8B5CF6", fontWeight: 300 }}>{showMore ? "✕" : "+"}</span>
-              <span>{t("المزيد")}</span>
+              <div style={{ 
+                width: 42, height: 42, borderRadius: "50%", 
+                background: showMore ? "var(--accent)" : "rgba(255,255,255,0.05)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                transform: showMore ? "rotate(135deg)" : "rotate(0)",
+                boxShadow: showMore ? "0 0 20px var(--accent-glow)" : "none",
+                marginBottom: 4
+              }}>
+                <span style={{ fontSize: 24, color: "white" }}>+</span>
+              </div>
+              <span className="nav-label">{t("المزيد")}</span>
             </button>
           </nav>
         </>
@@ -297,21 +320,22 @@ export default function Layout({ children }) {
 
         .mobile-nav .nav-link {
           flex-direction: column;
-          gap: 3px;
-          padding: 6px 0;
+          gap: 2px;
+          padding: 8px 0;
           flex: 1;
           justify-content: center;
           background: transparent !important;
           box-shadow: none !important;
           border-radius: 0;
-          font-size: 9px;
-          min-height: 44px;
+          font-size: 10px;
+          font-weight: 700;
+          min-height: 58px;
         }
-        .mobile-nav .nav-link span:first-child { font-size: 20px; }
-        .mobile-nav .nav-link.active { color: var(--accent); }
-        .mobile-nav .nav-link.active span:first-child {
-          transform: translateY(-2px);
-          text-shadow: 0 0 10px rgba(0,210,255,0.5);
+        .mobile-nav .nav-icon { font-size: 22px; transition: transform 0.2s; }
+        .mobile-nav .nav-link.active { color: var(--primary-light); }
+        .mobile-nav .nav-link.active .nav-icon {
+          transform: translateY(-4px) scale(1.1);
+          text-shadow: 0 4px 12px var(--primary-glow);
         }
       `}</style>
     </div>

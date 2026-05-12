@@ -94,22 +94,6 @@ export default function TeethMap({ initial, pid, treatments, onToothClick, onAdd
         </div>
       )}
 
-      {!readOnly && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 40, justifyContent: "center" }}>
-        {Object.entries(statusColors).map(([name, color]) => (
-          <div key={name} onClick={() => setSelectedStatus(name)} style={{ 
-            padding: "8px 16px", borderRadius: 12, cursor: "pointer", fontSize: 12, fontWeight: 600,
-            background: selectedStatus === name ? color : "rgba(255,255,255,0.03)",
-            color: selectedStatus === name ? (color === "transparent" ? "white" : "#000") : "white",
-            border: `1px solid ${selectedStatus === name ? color : "rgba(255,255,255,0.1)"}`,
-            transition: "all 0.2s",
-            boxShadow: selectedStatus === name ? `0 0 15px ${color}40` : "none"
-          }}>
-            {t(name)}
-          </div>
-        ))}
-        </div>
-      )}
 
       <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 30, padding: "40px 20px", border: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)", marginBottom: 10, textTransform: "uppercase", letterSpacing: 2 }}>{t("الفك العلوي - Upper Arch")}</div>
@@ -169,6 +153,23 @@ export default function TeethMap({ initial, pid, treatments, onToothClick, onAdd
         </div>
         <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)", marginTop: 20, textTransform: "uppercase", letterSpacing: 2 }}>{t("الفك السفلي - Lower Arch")}</div>
       </div>
+
+      {!readOnly && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 40, marginBottom: 20, justifyContent: "center" }}>
+        {Object.entries(statusColors).map(([name, color]) => (
+          <div key={name} onClick={() => setSelectedStatus(name)} style={{ 
+            padding: "8px 16px", borderRadius: 12, cursor: "pointer", fontSize: 12, fontWeight: 600,
+            background: selectedStatus === name ? color : "rgba(255,255,255,0.03)",
+            color: selectedStatus === name ? (color === "transparent" ? "white" : "#000") : "white",
+            border: `1px solid ${selectedStatus === name ? color : "rgba(255,255,255,0.1)"}`,
+            transition: "all 0.2s",
+            boxShadow: selectedStatus === name ? `0 0 15px ${color}40` : "none"
+          }}>
+            {t(name)}
+          </div>
+        ))}
+        </div>
+      )}
 
       {!readOnly && (
         <div style={{ marginTop: 40, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 20, direction: lang==="ar"?"rtl":"ltr" }}>

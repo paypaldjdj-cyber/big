@@ -106,7 +106,7 @@ export default function Patients() {
       {/* Table */}
       <div className="glass-panel">
         <div className="table-container">
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="mobile-card-table" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.03)" }}>
                 {[t("المريض"), t("الهاتف"), t("التواصل"), t("العمر"), t("آخر زيارة"), t("المستحق"), t("الحالة")].map(h => (
@@ -119,7 +119,7 @@ export default function Patients() {
                 const age = p.age || (p.birth_date ? Math.floor((Date.now() - new Date(p.birth_date)) / (365.25 * 864e5)) : "—");
                 return (
                   <tr key={p.id} className="table-row" onClick={() => nav(`/patients/${p.id}`)} style={{ cursor: "pointer" }}>
-                    <td style={{ padding: "14px 20px" }}>
+                    <td data-label={t("المريض")} style={{ padding: "14px 20px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #185FA5, #00D2FF)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600 }}>
                           {p.first_name?.[0]}{p.last_name?.[0]}
@@ -127,8 +127,8 @@ export default function Patients() {
                         <div style={{ fontWeight: 500 }}>{p.first_name} {p.last_name}</div>
                       </div>
                     </td>
-                    <td style={{ padding: "14px 20px", color: "var(--text-muted)", fontSize: 13 }}>{p.phone || "—"}</td>
-                    <td style={{ padding: "14px 20px" }}>
+                    <td data-label={t("الهاتف")} style={{ padding: "14px 20px", color: "var(--text-muted)", fontSize: 13 }}>{p.phone || "—"}</td>
+                    <td data-label={t("التواصل")} style={{ padding: "14px 20px" }}>
                       {p.phone ? (
                         <div style={{ display: "flex", gap: 10 }} onClick={e => e.stopPropagation()}>
                           <a href={`https://wa.me/${p.phone.startsWith('0') ? '964' + p.phone.slice(1).replace(/[^0-9]/g, '') : p.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="contact-btn wa-btn" title="WhatsApp">
@@ -140,10 +140,10 @@ export default function Patients() {
                         </div>
                       ) : <span style={{ color: "var(--text-muted)", fontSize: 11 }}>—</span>}
                     </td>
-                    <td style={{ padding: "14px 20px", fontSize: 13 }}>{age !== "—" ? `${age} ${t("سنة")}` : "—"}</td>
-                    <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-muted)" }}>{p.last_visit || "—"}</td>
-                    <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>{(p.debt || 0).toLocaleString()} {t("د")}</td>
-                    <td style={{ padding: "14px 20px" }}>
+                    <td data-label={t("العمر")} style={{ padding: "14px 20px", fontSize: 13 }}>{age !== "—" ? `${age} ${t("سنة")}` : "—"}</td>
+                    <td data-label={t("آخر زيارة")} style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-muted)" }}>{p.last_visit || "—"}</td>
+                    <td data-label={t("المستحق")} style={{ padding: "14px 20px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>{(p.debt || 0).toLocaleString()} {t("د")}</td>
+                    <td data-label={t("الحالة")} style={{ padding: "14px 20px" }}>
                       <span style={{ 
                         fontSize: 11, padding: "4px 10px", borderRadius: 20,
                         background: p.status === "منتظم" ? "rgba(24, 95, 165, 0.1)" : p.status === "مديون" ? "rgba(239, 68, 68, 0.1)" : "rgba(16, 185, 129, 0.1)",

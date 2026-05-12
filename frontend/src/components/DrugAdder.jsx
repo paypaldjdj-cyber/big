@@ -216,10 +216,17 @@ export default function DrugAdder({ patient, onAdd }) {
     setShowSug(false);
   };
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div className="animate-fade" style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: 20, minHeight: 450 }}>
+    <div className="animate-fade" style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 20, minHeight: 450 }}>
       {/* Left Column: Favorites List (Multi-Select) */}
-      <div className="glass-panel" style={{ padding: 20, display: "flex", flexDirection: "column", border: pendingDrugs.length > 0 ? "1px solid var(--primary)" : "1px solid rgba(0, 210, 255, 0.1)" }}>
+      <div className="glass-panel" style={{ flex: 1, padding: 20, display: "flex", flexDirection: "column", border: pendingDrugs.length > 0 ? "1px solid var(--primary)" : "1px solid rgba(0, 210, 255, 0.1)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
             ⭐ {t("قائمة العلاجات المفضلة")} {filterCat && <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.6 }}>({filterCat})</span>}
@@ -233,7 +240,15 @@ export default function DrugAdder({ patient, onAdd }) {
           <span>{t("انقر لتحديد أكثر من علاج ثم اضغط إضافة الكل")}</span>
         </div>
         
-        <div className="custom-scrollbar" style={{ flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, paddingRight: 4 }}>
+        <div className="custom-scrollbar" style={{ 
+          flex: 1, 
+          overflowY: "auto", 
+          maxHeight: isMobile ? "35vh" : "50vh",
+          display: "grid", 
+          gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", 
+          gap: 10, 
+          paddingRight: 4 
+        }}>
           {favorites.length > 0 ? (
             favorites.map(d => {
               const isPending = pendingDrugs.find(p => p.id === d.id);
@@ -317,7 +332,7 @@ export default function DrugAdder({ patient, onAdd }) {
       </div>
 
       {/* Right Column: Filters (Narrower) */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ width: isMobile ? "100%" : 280, display: "flex", flexDirection: "column", gap: 12 }}>
         <div className="glass-panel" style={{ padding: 16 }}>
           <label style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>{t("تصنيف العلاجات")}</label>
           <select className="glass-input" style={{ width: "100%", padding: 8, fontSize: 12 }} value={filterCat} onChange={e => setFilterCat(e.target.value)}>

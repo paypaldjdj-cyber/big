@@ -86,13 +86,17 @@ export default function Settings() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 40 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "280px 1fr", gap: isMobile ? 20 : 40 }}>
         {/* Sidebar Tabs */}
-        <div className="glass-panel" style={{ padding: 12, height: "fit-content" }}>
+        <div className="glass-panel" style={{ padding: 12, height: "fit-content", display: isMobile ? "flex" : "block", overflowX: isMobile ? "auto" : "visible", gap: 8 }}>
           {tabs.map(tab => (
-            <div key={tab.id} onClick={() => setActiveTab(tab.id)} style={sidebarTabStyle(tab.id)}>
-              <span style={{ fontSize: 20 }}>{tab.icon}</span>
-              <span>{tab.label}</span>
+            <div key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+              ...sidebarTabStyle(tab.id),
+              flexShrink: 0,
+              padding: isMobile ? "10px 16px" : "14px 20px"
+            }}>
+              <span style={{ fontSize: isMobile ? 16 : 20 }}>{tab.icon}</span>
+              <span style={{ fontSize: isMobile ? 12 : 14, whiteSpace: "nowrap" }}>{tab.label}</span>
             </div>
           ))}
         </div>
@@ -104,12 +108,12 @@ export default function Settings() {
             <div className="glass-panel animate-fade" style={{ padding: 32 }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24 }}>🏢 {t("بيانات العيادة العامة")}</h3>
               
-              <div style={{ display: "flex", gap: 32, marginBottom: 32, alignItems: "center" }}>
-                <div style={{ width: 100, height: 100, borderRadius: 20, overflow: "hidden", background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", border: "2px dashed rgba(255,255,255,0.1)" }}>
+              <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 16 : 32, marginBottom: 32, alignItems: isMobile ? "flex-start" : "center" }}>
+                <div style={{ width: 80, height: 80, borderRadius: 16, overflow: "hidden", background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", border: "2px dashed rgba(255,255,255,0.1)", flexShrink: 0 }}>
                   {form.clinic_logo ? (
                     <img src={BASE + form.clinic_logo} alt="Clinic Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
-                    <span style={{ fontSize: 32 }}>🦷</span>
+                    <span style={{ fontSize: 24 }}>🦷</span>
                   )}
                 </div>
                 <div>
@@ -122,7 +126,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 24 }}>
                 {[
                   { k: "clinic_name",  l: "اسم العيادة" },
                   { k: "doctor_name",  l: "اسم الطبيب" },
@@ -144,7 +148,7 @@ export default function Settings() {
               {/* Prescription Branding */}
               <div className="glass-panel" style={{ padding: 32 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24 }}>📜 {t("هوية الوصفة الطبية")}</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 24 }}>
                    <div>
                      <label style={lblStyle}>{t("صورة رأس الوصفة (Header)")}</label>
                      <input type="file" id="h-up" hidden onChange={e => {
@@ -171,7 +175,7 @@ export default function Settings() {
               {/* Receipt Branding */}
               <div className="glass-panel" style={{ padding: 32, marginTop: 24 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24 }}>🧾 {t("هوية الوصل المالي")}</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 24 }}>
                    <div>
                      <label style={lblStyle}>{t("صورة رأس الوصل (Receipt Header)")}</label>
                      <input type="file" id="rh-up" hidden onChange={e => {
@@ -287,7 +291,7 @@ export default function Settings() {
                       </div>
                    </div>
 
-                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
                      <button onClick={() => window.open(downloadBackup())} 
                        className="glass-panel" style={{ padding: 20, textAlign: "center", cursor: "pointer", border: "1px solid rgba(255,255,255,0.05)" }}>
                        <div style={{ fontSize: 24, marginBottom: 8 }}>📥</div>

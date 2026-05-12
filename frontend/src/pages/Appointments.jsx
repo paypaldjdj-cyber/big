@@ -40,7 +40,7 @@ export default function Appointments() {
   const [modal,  setModal]  = useState(false);
   const [saving, setSaving] = useState(false);
   const [form,   setForm]   = useState({
-    patient_id: "", date: "", time: "", type: "", duration_min: 30, status: "قادم", notes: ""
+    patient_id: "", date: "", time: "", type: "", duration_min: 30, status: "booked", notes: ""
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -48,13 +48,38 @@ export default function Appointments() {
   const [reminderModal, setReminderModal] = useState(false);
   const [tomorrowApts, setTomorrowApts] = useState([]);
   const [confirmData, setConfirmData] = useState({ show: false, message: "", onConfirm: null });
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [dailyView, setDailyView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const dateStr = (d = selDay) =>
     `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
+  const mapStatus = (s) => {
+    if (s === "قادم" || s === "محجوز") return "booked";
+    if (s === "في الانتظار") return "waiting";
+    if (s === "قيد المعالجة") return "treating";
+    if (s === "منتهي") return "finished";
+    if (s === "مؤجل") return "postponed";
+    if (s === "غائب") return "absent";
+    return s;
+  };
+
   const load = () => {
-    getAppointments(dateStr()).then(setApts).catch(console.error);
-    getAppointments().then(setAllApts).catch(console.error);
+    getAppointments(dateStr()).then(data => {
+      const mapped = data.map(a => ({ ...a, status: mapStatus(a.status) }));
+      setApts(mapped);
+    }).catch(console.error);
+    
+    getAppointments().then(data => {
+      const mapped = data.map(a => ({ ...a, status: mapStatus(a.status) }));
+      setAllApts(mapped);
+    }).catch(console.error);
   };
 
   useEffect(() => { load(); }, [year, month, selDay]);
@@ -76,7 +101,7 @@ export default function Appointments() {
   const aptDays = new Set(allApts.filter(a => a.date && typeof a.date === 'string').map(a => parseInt(a.date.split("-")[2])));
 
   const openModal = () => {
-    setForm({ patient_id: "", date: dateStr(), time: "", type: "", duration_min: 30, status: "قادم", notes: "" });
+    setForm({ patient_id: "", date: dateStr(), time: "", type: "", duration_min: 30, status: "booked", notes: "" });
     setSearchTerm("");
     setShowResults(false);
     setModal(true);
@@ -149,8 +174,15 @@ export default function Appointments() {
   };
 
   const cycleStatus = async (id, current) => {
-    const idx = STATUS_ORDER.indexOf(current);
-    const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+    // Map legacy Arabic values to keys if needed
+    let currentKey = current;
+    if (current === "قادم" || current === "محجوز") currentKey = "booked";
+    if (current === "في الانتظار") currentKey = "waiting";
+    if (current === "قيد المعالجة") currentKey = "treating";
+    if (current === "منتهي") currentKey = "finished";
+    
+    const idx = STATUS_ORDER.indexOf(currentKey);
+    const next = STATUS_ORDER[idx === -1 ? 0 : (idx + 1) % STATUS_ORDER.length];
     const { updateAppointment } = await import("../api");
     await updateAppointment(id, { status: next });
     load();
@@ -162,11 +194,11 @@ export default function Appointments() {
   return (
     <div className="animate-fade">
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700 }}>{t("إدارة المواعيد")}</h2>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={() => nav("/today-schedule")} className="btn-ghost" style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(24, 95, 165, 0.1)", color: "var(--primary)" }}>
-            <span>🖥️</span> <span>{t("عرض الجدول اليومي")}</span>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: 16, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{t("إدارة المواعيد")}</h2>
+        <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto", overflowX: isMobile ? "auto" : "visible", paddingBottom: isMobile ? 8 : 0 }}>
+          <button onClick={() => setDailyView(true)} className="btn-ghost" style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(24, 95, 165, 0.1)", color: "var(--primary)", whiteSpace: "nowrap", flexShrink: 0 }}>
+            <span>🖥️</span> <span>{isMobile ? "" : t("عرض الجدول اليومي")}</span>
           </button>
           <button onClick={async () => {
             const tomorrow = new Date();
@@ -175,17 +207,130 @@ export default function Appointments() {
             const res = await getAppointments(tStr);
             setTomorrowApts(res);
             setReminderModal(true);
-          }} className="btn-ghost" style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(34, 197, 94, 0.1)", color: "#22c55e" }}>
-            <span>🔔</span> <span className="desktop-only">{t("إرسال تذكيرات الغد")}</span>
+          }} className="btn-ghost" style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(34, 197, 94, 0.1)", color: "#22c55e", whiteSpace: "nowrap", flexShrink: 0 }}>
+            <span>🔔</span> <span>{isMobile ? "" : t("إرسال تذكيرات الغد")}</span>
           </button>
-          <button onClick={openModal} className="btn-primary">
+          <button onClick={openModal} className="btn-primary" style={{ whiteSpace: "nowrap", flexShrink: 0, flex: isMobile ? 1 : "none" }}>
             <span>+</span> {t("موعد جديد")}
           </button>
         </div>
       </div>
+      
+      {dailyView && (
+        <div className="animate-fade" style={{ position: "absolute", inset: 0, background: "var(--bg-dark)", zIndex: 100, padding: isMobile ? 12 : 32, overflowY: "auto" }}>
+           <div style={{ 
+             display: "flex", 
+             flexDirection: isMobile ? "column" : "row",
+             alignItems: isMobile ? "flex-start" : "center", 
+             justifyContent: "space-between", 
+             gap: 16,
+             marginBottom: 32 
+           }}>
+             <button className="btn-secondary" onClick={() => setDailyView(false)} style={{ width: isMobile ? "100%" : "auto" }}>⬅️ {t("العودة للمواعيد")}</button>
+             <div style={{ textAlign: isMobile ? "right" : "left", width: isMobile ? "100%" : "auto" }}>
+                <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, margin: 0 }}>📋 {t("جدول مواعيد اليوم")}</h2>
+                <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>{today.toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+             </div>
+           </div>
+
+           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+             {apts.length === 0 ? (
+               <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)", background: "rgba(255,255,255,0.02)", borderRadius: 24 }}>
+                 <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+                 <div>{t("لا توجد مواعيد مسجلة لهذا اليوم")}</div>
+               </div>
+             ) : [...apts].sort((a,b) => a.time.localeCompare(b.time)).map(v => (
+               <div key={v.id} className="glass-panel animate-fade" style={{ 
+                 padding: isMobile ? 16 : 24, 
+                 display: "flex", 
+                 flexDirection: isMobile ? "column" : "row",
+                 alignItems: isMobile ? "stretch" : "center", 
+                 gap: isMobile ? 12 : 24, 
+                 borderRight: `6px solid ${(STATUS_CONFIG[v.status] || STATUS_CONFIG["booked"]).color}`,
+                 background: "linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%)"
+               }}>
+                 <div style={{ 
+                   background: "rgba(24, 95, 165, 0.15)", 
+                   padding: isMobile ? "12px" : "15px 25px", 
+                   borderRadius: 16, 
+                   textAlign: "center",
+                   minWidth: isMobile ? "auto" : 120
+                 }}>
+                   <div style={{ fontSize: isMobile ? 24 : 32, fontWeight: 900, color: "var(--primary)" }}>{v.time}</div>
+                   <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", marginTop: 4 }}>{t("التوقيت")}</div>
+                 </div>
+                 
+                 <div style={{ flex: 1 }}>
+                   <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, marginBottom: 4 }}>{v.patient_name}</div>
+                   <div style={{ display: "flex", flexWrap: "wrap", gap: 12, color: "var(--text-muted)", fontSize: 13 }}>
+                     <span>🦷 {v.type || t("فحص عام")}</span>
+                     <span>⏳ {v.duration_min} {t("دقيقة")}</span>
+                     {v.notes && <span>📝 {v.notes}</span>}
+                   </div>
+                 </div>
+
+                 <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: isMobile ? "space-between" : "flex-end", flexWrap: "wrap", marginTop: isMobile ? 8 : 0 }}>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {v.status === "treating" && (
+                        <button 
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           nav(`/patients/${v.patient_id}?action=start-session`);
+                         }}
+                         className="animate-pulse"
+                         style={{ 
+                           padding: "8px 16px", borderRadius: 12, fontSize: 13, fontWeight: 800,
+                           background: "var(--primary)", color: "white", border: "none", cursor: "pointer",
+                           display: "flex", alignItems: "center", gap: 6, boxShadow: "0 0 15px rgba(0, 210, 255, 0.4)"
+                         }}
+                        >
+                          <span>🦷</span> <span>{t("بدأ جلسة")}</span>
+                        </button>
+                      )}
+
+                      <button 
+                       onClick={(e) => { e.stopPropagation(); cycleStatus(v.id, v.status); }}
+                       style={{ 
+                         padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 700,
+                         background: (STATUS_CONFIG[v.status] || STATUS_CONFIG["booked"]).bg,
+                         color: (STATUS_CONFIG[v.status] || STATUS_CONFIG["booked"]).color,
+                         border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+                       }}
+                      >
+                        <span>{(STATUS_CONFIG[v.status] || STATUS_CONFIG["booked"]).icon}</span>
+                        <span>{(STATUS_CONFIG[v.status] || STATUS_CONFIG["booked"]).ar}</span>
+                      </button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8 }}>
+                       {["finished", "postponed", "absent"].includes(v.status) && (
+                         <button 
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             // Hide logic: update status to something that hides it, or just remove from local state
+                             setApts(prev => prev.filter(app => app.id !== v.id));
+                           }}
+                           className="btn-ghost"
+                           style={{ 
+                             width: 36, height: 36, borderRadius: 10, border: "none", 
+                             background: "rgba(16, 185, 129, 0.1)", color: "#10b981", 
+                             fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center"
+                           }}
+                           title={t("إخفاء")}
+                         >
+                           ✔️
+                         </button>
+                       )}
+                       <button onClick={(e) => { e.stopPropagation(); nav(`/patients/${v.patient_id}`); }} className="btn-ghost" style={{ padding: "8px 12px", background: "rgba(255,255,255,0.05)", borderRadius: 10, border: "none", cursor: "pointer" }}>👤</button>
+                    </div>
+                 </div>
+               </div>
+             ))}
+           </div>
+        </div>
+      )}
 
       <div className="appointments-grid">
-        {/* Calendar */}
         <div className="glass-panel" style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ fontWeight: 600, fontSize: 16 }}>{t(MONTHS[month])} {year}</div>
@@ -195,14 +340,12 @@ export default function Appointments() {
             </div>
           </div>
 
-          {/* Day headers */}
           <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 8 }}>
             {["أح", "اث", "ثل", "أر", "خم", "جم", "سب"].map(d => (
               <div key={d} style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)", fontWeight: 600, padding: "4px 0" }}>{t(d)}</div>
             ))}
           </div>
 
-          {/* Days grid */}
           <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
             {Array(firstWeekDay).fill(null).map((_, i) => <div key={"e" + i} />)}
             {Array(daysInMonth).fill(null).map((_, i) => {
@@ -229,14 +372,12 @@ export default function Appointments() {
             })}
           </div>
 
-          {/* Legend */}
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: 16, fontSize: 11, color: "var(--text-muted)" }}>
             <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--primary)", marginLeft: 4 }} />يوم فيه موعد</span>
             <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "var(--primary)", marginLeft: 4 }} />اليوم المحدد</span>
           </div>
         </div>
 
-        {/* Day appointments */}
         <div className="glass-panel" style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <h3 style={{ fontSize: 18, fontWeight: 600 }}>
@@ -256,8 +397,6 @@ export default function Appointments() {
               </div>
             ) : apts.map(a => {
               const sc = STATUS_CONFIG[a.status] || STATUS_CONFIG["booked"];
-              
-              // Highlight Logic: Is it soon? (within 2 hours)
               let isSoon = false;
               if (a.status === "booked" && a.date && typeof a.date === 'string' && a.date === new Date().toISOString().split('T')[0]) {
                 const [h, m] = a.time.split(':');
@@ -272,13 +411,14 @@ export default function Appointments() {
                 <div key={a.id} 
                   onClick={() => nav(`/patients/${a.patient_id}`)}
                   style={{
-                    display: "flex", alignItems: "center", gap: 16, padding: "16px 20px",
+                    display: "flex", alignItems: "center", gap: isMobile ? 10 : 16, padding: isMobile ? "12px 14px" : "16px 20px",
                     background: isSoon ? "rgba(245, 158, 11, 0.1)" : "rgba(255,255,255,0.03)", 
                     borderRadius: 14,
                     border: isSoon ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(255,255,255,0.07)", 
                     transition: "all 0.3s",
                     position: "relative",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    overflow: "hidden"
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.background = isSoon ? "rgba(245, 158, 11, 0.15)" : "rgba(255,255,255,0.06)";
@@ -294,7 +434,6 @@ export default function Appointments() {
                       {t("يقترب موعده")} ⏰
                     </div>
                   )}
-                  {/* Time badge */}
                   <div style={{
                     minWidth: 60, textAlign: "center", padding: "8px 4px", borderRadius: 10,
                     background: "rgba(24,95,165,0.15)", color: "var(--primary)", fontWeight: 700, fontSize: 15
@@ -302,7 +441,6 @@ export default function Appointments() {
                     {a.time}
                   </div>
 
-                  {/* Info */}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{a.patient_name}</div>
                     <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
@@ -311,15 +449,15 @@ export default function Appointments() {
                     </div>
                   </div>
 
-                  {/* Status badge */}
                   <button 
                     onClick={(e) => { e.stopPropagation(); cycleStatus(a.id, a.status); }}
                     style={{ 
-                      fontSize: 11, padding: "6px 14px", borderRadius: 20, 
+                      fontSize: 10, padding: isMobile ? "4px 8px" : "6px 14px", borderRadius: 20, 
                       background: (STATUS_CONFIG[a.status] || STATUS_CONFIG["booked"]).bg, 
                       color: (STATUS_CONFIG[a.status] || STATUS_CONFIG["booked"]).color, 
                       fontWeight: 700, border: "none", cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s"
+                      display: "flex", alignItems: "center", gap: 4, transition: "all 0.2s",
+                      whiteSpace: "nowrap"
                     }}
                     onMouseEnter={e => e.currentTarget.style.filter = "brightness(1.1)"}
                     onMouseLeave={e => e.currentTarget.style.filter = "none"}
@@ -328,7 +466,6 @@ export default function Appointments() {
                     <span>{t((STATUS_CONFIG[a.status] || STATUS_CONFIG["booked"]).ar)}</span>
                   </button>
 
-                  {/* WhatsApp Reminder Button */}
                   {a.patient_phone && (
                     <button 
                       onClick={(e) => {
@@ -357,7 +494,6 @@ export default function Appointments() {
                     </button>
                   )}
 
-                  {/* Delete */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -424,16 +560,22 @@ export default function Appointments() {
       , document.body)}
 
       {modal && createPortal(
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div className="glass-panel animate-fade" style={{ width: "100%", maxWidth: 580, padding: 36 }}>
-            <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 28, textAlign: "center" }}>{t("إضافة موعد جديد")}</h3>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "10px" : "20px" }}>
+          <div className="glass-panel animate-fade" style={{ 
+            width: "100%", 
+            maxWidth: 580, 
+            padding: isMobile ? "24px 20px" : "36px", 
+            maxHeight: "92vh", 
+            overflowY: "auto",
+            position: "relative"
+          }}>
+            <h3 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 700, marginBottom: 24, textAlign: "center" }}>{t("إضافة موعد جديد")}</h3>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Patient */}
               <div>
                 <label style={lblStyle}>{t("المريض *")}</label>
                 <div style={{ position: "relative" }} ref={searchRef} onMouseDown={e => e.stopPropagation()}>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
                     <div style={{ position: "relative", flex: 1 }}>
                       <input 
                         className="glass-input" 
@@ -502,8 +644,7 @@ export default function Appointments() {
                 </div>
               </div>
 
-              {/* Date & Time */}
-              <div className="grid-2">
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
                 <div>
                   <label style={lblStyle}>{t("التاريخ *")}</label>
                   <input type="date" className="glass-input" style={{ width: "100%" }}
@@ -516,8 +657,7 @@ export default function Appointments() {
                 </div>
               </div>
 
-              {/* Type & Duration */}
-              <div className="grid-2">
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
                 <div>
                   <label style={lblStyle}>{t("نوع العلاج")}</label>
                   <select className="glass-input" style={{ width: "100%" }}
@@ -535,7 +675,6 @@ export default function Appointments() {
                 </div>
               </div>
 
-              {/* Status */}
               <div>
                 <label style={lblStyle}>{t("الحالة")}</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -556,7 +695,6 @@ export default function Appointments() {
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <label style={lblStyle}>{t("ملاحظات")}</label>
                 <input type="text" className="glass-input" style={{ width: "100%" }}
@@ -565,9 +703,9 @@ export default function Appointments() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-              <button onClick={() => setModal(false)} className="btn-ghost" style={{ flex: 1 }}>{t("إلغاء")}</button>
-              <button onClick={save} disabled={saving} className="btn-primary" style={{ flex: 2 }}>
+            <div style={{ display: "flex", gap: 12, marginTop: 28, flexDirection: isMobile ? "column-reverse" : "row" }}>
+              <button onClick={() => setModal(false)} className="btn-ghost" style={{ flex: 1, height: 48 }}>{t("إلغاء")}</button>
+              <button onClick={save} disabled={saving} className="btn-primary" style={{ flex: 2, height: 48 }}>
                 {saving ? t("جاري الحفظ...") : t("✓ حفظ الموعد")}
               </button>
             </div>
@@ -577,10 +715,11 @@ export default function Appointments() {
       <style>{`
         .appointments-grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        
         .mobile-mode .appointments-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
         .mobile-mode .grid-2 { grid-template-columns: 1fr !important; }
         .mobile-mode .calendar-grid { gap: 1px !important; }
+        .desktop-only { display: inline; }
+        .mobile-mode .desktop-only { display: none; }
       `}</style>
       
       <ConfirmModal 

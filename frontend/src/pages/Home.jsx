@@ -268,8 +268,8 @@ export default function Home() {
         .mobile-mode .stat-card-container { padding: 14px; border-radius: 16px; }
         .mobile-mode .stat-card-top { margin-bottom: 10px; }
         .mobile-mode .stat-card-icon { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; }
-        .mobile-mode .stat-card-val { font-size: 22px; }
-        .mobile-mode .stat-card-label { font-size: 11px; }
+        .mobile-mode .stat-card-val { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mobile-mode .stat-card-label { font-size: 10px; }
 
         .mobile-mode .home-main-grid { grid-template-columns: 1fr; gap: 12px; }
         .mobile-mode .home-section-card { padding: 14px; border-radius: 16px; }

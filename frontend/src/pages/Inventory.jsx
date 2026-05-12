@@ -125,7 +125,7 @@ export default function Inventory() {
       )}
 
       {/* Grid view for inventory items */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
         {items.map(item => (
           <div key={item.id} className="glass-panel" style={{ 
             padding: 24, 

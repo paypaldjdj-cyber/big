@@ -847,76 +847,130 @@ select.glass-input {
 /* ─────────────────────────────────────────
    23. RESPONSIVE MOBILE
 ───────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   23. RESPONSIVE MOBILE
+───────────────────────────────────────── */
 @media (max-width: 768px) {
   .admin-container {
-    padding: 24px 16px;
+    padding: 16px 12px;
   }
 
   .admin-main-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 16px;
+  }
+
+  /* Global adjustments for all mobile screens */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
   }
 }
 
 /* ─────────────────────────────────────────
-   23.1 MOBILE SPECIFIC OVERRIDES (Proposed Measurements)
+   23.1 MOBILE APP EXPERIENCE (Fluid & Professional)
 ───────────────────────────────────────── */
-.mobile-mode {
-  max-width: 390px;
-  margin: 0 auto;
-}
+  .mobile-mode {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .mobile-mode main {
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
 
 .mobile-mode .glass-panel {
-  position: static !important;
-  border-radius: 14px !important;
+  border-radius: var(--radius-sm) !important;
+  margin-bottom: 12px;
 }
 
 .mobile-mode h1,
-.mobile-mode h2,
-.mobile-mode .panel-header h2,
-.mobile-mode .panel-header h3 {
-  font-size: 18px !important;
-}
-
-.mobile-mode .badge {
-  font-size: 12px !important;
-}
-
-.mobile-mode .stats-grid {
-  grid-template-columns: 1fr 1fr !important;
-  gap: 12px !important;
-}
-
-.mobile-mode .stat-card-container {
-  padding: 16px;
-  border-radius: 14px;
-}
-
-.mobile-mode .stat-card-val {
-  font-size: 20px;
-}
-
-.mobile-mode .stat-card-label {
-  font-size: 12px;
-}
-
-.mobile-mode .bottom-nav {
-  height: 72px !important;
-  padding-bottom: env(safe-area-inset-bottom) !important;
+.mobile-mode h2 {
+  font-size: 20px !important;
+  font-weight: 800;
 }
 
 .mobile-mode .page-content {
-  padding: 24px 16px calc(72px + env(safe-area-inset-bottom) + 12px) !important;
+  padding: 16px 12px 100px 12px !important; /* Bottom padding for nav */
 }
 
-.mobile-mode .nav-bar {
-  width: calc(100% - 24px) !important;
-  max-width: none !important;
+/* ── MOBILE CARD TABLE (The Secret for Beautiful Data) ── */
+@media (max-width: 640px) {
+  .mobile-card-table thead {
+    display: none; /* Hide headers */
+  }
+
+  .mobile-card-table tr {
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+  }
+
+  .mobile-card-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0 !important;
+    border: none !important;
+    font-size: 13px !important;
+  }
+
+  /* Add labels before data using data-label attribute */
+  .mobile-card-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  
+  .mobile-card-table td:last-child {
+    border-top: 1px solid var(--text-faint) !important;
+    margin-top: 8px;
+    padding-top: 12px !important;
+    justify-content: center;
+  }
+}
+
+/* ── MOBILE MODAL ENHANCEMENTS ── */
+@media (max-width: 640px) {
+  .modal-panel {
+    width: 95% !important;
+    max-width: none !important;
+    margin: 10px !important;
+    border-radius: var(--radius-md) !important;
+    padding: 20px !important;
+  }
 }
 
 /* ─────────────────────────────────────────
    24. PAYMENT METHOD TOGGLE (Invoices/Expenses)
 ───────────────────────────────────────── */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  background-color: var(--bg-dark);
+  font-family: 'Inter', 'Cairo', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 .payment-method-btn {
   flex: 1;
   padding: 11px 0;

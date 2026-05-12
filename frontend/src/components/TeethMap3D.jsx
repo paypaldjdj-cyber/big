@@ -108,13 +108,20 @@ function Model({ url, onToothSelect, toothStatus, treatments, noControls, focuse
   );
 }
 
-export default function TeethMap3D({ data: externalData, onChange, treatments, noControls = false, pid, focusedTooth, onToothClick }) {
+export default function TeethMap3D({ data: externalData, onChange, treatments, noControls = false, pid, focusedTooth, onToothClick, forceFullView }) {
   const { t } = useLanguage();
   const [selectedTooth, setSelectedTooth] = useState(focusedTooth || null);
   const [selectedToothRaw, setSelectedToothRaw] = useState(null);
   const [localData, setLocalData] = useState(externalData || {});
   const [selectedStatus, setSelectedStatus] = useState("نخر");
   const [autoRotate, setAutoRotate] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Sync selection if focusedTooth changes externally
   React.useEffect(() => {
@@ -162,8 +169,8 @@ export default function TeethMap3D({ data: externalData, onChange, treatments, n
   };
 
   // Smart Camera Positioning
-  let cameraPos = [0, 8, 60]; 
-  const targetTooth = selectedTooth || focusedTooth || (noControls && treatments?.length > 0 ? treatments[0].tooth_number : null);
+  let cameraPos = forceFullView ? (isMobile ? [0, 30, 240] : [0, 15, 100]) : [0, 8, 60];
+  const targetTooth = forceFullView ? null : (selectedTooth || focusedTooth || (noControls && treatments?.length > 0 ? treatments[0].tooth_number : null));
 
   if (targetTooth) {
     const tNum = parseInt(targetTooth);
@@ -175,8 +182,8 @@ export default function TeethMap3D({ data: externalData, onChange, treatments, n
   }
 
   return (
-    <div className="animate-fade" style={noControls ? { height: "100%", width: "100%" } : { display: "grid", gridTemplateColumns: "1.8fr 1fr", gap: 24, minHeight: 600 }}>
-      <div className={noControls ? "" : "glass-panel"} style={{ position: "relative", background: noControls ? "transparent" : "#0a0f18", borderRadius: noControls ? 0 : 24, overflow: "hidden", border: "none" }}>
+    <div className="animate-fade" style={noControls ? { height: "100%", width: "100%" } : { display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.8fr 1fr", gap: 24, minHeight: isMobile ? "auto" : 600 }}>
+      <div className={noControls ? "" : "glass-panel"} style={{ position: "relative", background: noControls ? "transparent" : "#0a0f18", borderRadius: noControls ? 0 : 24, overflow: "hidden", border: "none", height: isMobile ? 400 : "auto" }}>
         {!noControls && (
           <button onClick={() => setAutoRotate(!autoRotate)} style={{ position: 'absolute', top: 20, right: 20, zIndex: 10, background: autoRotate ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)', color: autoRotate ? '#3b82f6' : 'white', padding: '8px 16px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
             {autoRotate ? t("⏸️ إيقاف") : t("🎬 دوران")}
@@ -184,7 +191,7 @@ export default function TeethMap3D({ data: externalData, onChange, treatments, n
         )}
         <ErrorBoundary>
           <Suspense fallback={<div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: "white" }}>{t("جاري تحميل النموذج...")}</div>}>
-            <Canvas shadows camera={{ position: cameraPos, fov: 45 }} alpha={true} gl={{ antialias: true, alpha: true }}>
+            <Canvas shadows camera={{ position: cameraPos, fov: 45 }} gl={{ antialias: true, alpha: true }}>
               <ambientLight intensity={1.2} />
               <pointLight position={[10, 10, 10]} intensity={1.5} />
               <spotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
